@@ -1,0 +1,52 @@
+{
+  "name": "figue",
+  "version": "0.0.0",
+  "description": "Platform agnostic configuration management library, with environmental variables and validation, like convict",
+  "funding": "https://github.com/sponsors/CorentinTh",
+  "author": "Corentin Th <corentin.thomasset74+npm@gmail.com> (https://github.com/CorentinTh)",
+  "private": false,
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/CorentinTh/figue"
+  },
+  "license": "MIT",
+  "sideEffects": false,
+  "type": "module",
+  "exports": {
+    ".": {
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.cjs"
+    }
+  },
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "unbuild",
+    "dev": "vitest dev",
+    "lint": "eslint --ext .ts,.js,.mjs,.cjs .",
+    "prepack": "unbuild",
+    "release": "standard-version",
+    "test": "vitest"
+  },
+  "devDependencies": {
+    "@types/lodash": "^4.14.182",
+    "@typescript-eslint/eslint-plugin": "^5.23.0",
+    "@typescript-eslint/parser": "^5.23.0",
+    "c8": "^7.11.3",
+    "eslint": "^8.15.0",
+    "eslint-config-prettier": "^8.5.0",
+    "prettier": "^2.6.2",
+    "standard-version": "latest",
+    "typescript": "latest",
+    "unbuild": "latest",
+    "vitest": "latest"
+  },
+  "packageManager": "pnpm@7.0.0",
+  "dependencies": {
+    "lodash": "^4.17.21"
+  }
+}
