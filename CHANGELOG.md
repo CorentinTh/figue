@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.1.2](https://github.com/CorentinTh/figue/compare/v1.1.1...v1.1.2) (2022-05-23)
+
+
+### Bug Fixes
+
+* **boolean:** string coercion for boolean format ([742efd3](https://github.com/CorentinTh/figue/commit/742efd3800d7d61e6737d9f723eeb2c6c7803ce5))
+* **docs:** added missing boolean format description ([d283bde](https://github.com/CorentinTh/figue/commit/d283bde7f3d529b6ebc07ced9dc3f7d0f8edf44e))
+
 ### [1.1.1](https://github.com/CorentinTh/figue/compare/v1.1.0...v1.1.1) (2022-05-23)
 
 
