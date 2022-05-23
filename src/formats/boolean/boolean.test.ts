@@ -33,4 +33,22 @@ describe('booleanFormat', () => {
       expect(validateProxy(-Infinity)).toBe(true);
     });
   });
+
+  describe('coerce', () => {
+    it('should coerce value to bool', () => {
+      const { coerce } = format;
+
+      const coerceProxy = (v: unknown) => coerce(v, {} as SchemaObjBoolean);
+
+      expect(coerceProxy(0)).toBe(false);
+      expect(coerceProxy('false')).toBe(false);
+      expect(coerceProxy('')).toBe(false);
+      expect(coerceProxy('sdsq')).toBe(false);
+
+      expect(coerceProxy('true ')).toBe(true);
+      expect(coerceProxy('true')).toBe(true);
+      expect(coerceProxy('True')).toBe(true);
+      expect(coerceProxy(' True ')).toBe(true);
+    });
+  });
 });
