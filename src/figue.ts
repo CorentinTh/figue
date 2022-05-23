@@ -71,7 +71,7 @@ export class Figue<T extends Schema> {
     for (const { path, schema } of this.schemaFlat) {
       const { format } = schema;
 
-      const { validate } = formats[format];
+      const { validate } = formats[format] ?? {};
 
       if (!validate) {
         throw new Error(`[figue:invalid-format] The format '${format}' does not exist, valid formats are ${Object.keys(formats).join(', ')}.`);
@@ -92,7 +92,11 @@ export class Figue<T extends Schema> {
   }
 
   private getValue({ path, schema }: { path: string[]; schema: SchemaObj }) {
-    const { coerce } = formats[schema.format];
+    const { coerce } = formats[schema.format] ?? {};
+
+    if (!coerce) {
+      throw new Error(`[figue:invalid-format] The format '${schema.format}' does not exist, valid formats are ${Object.keys(formats).join(', ')}.`);
+    }
 
     const value = this.env[schema.env] ?? _.get(this.config, path) ?? schema.default;
 
