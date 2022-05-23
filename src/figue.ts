@@ -41,7 +41,7 @@ export function flattenSchema(schema: Schema, keys: string[] = []): { path: stri
   return acc;
 }
 
-type Env = { [k: string]: number | string | boolean };
+type Env = { [k: string]: number | string | boolean | undefined };
 
 export class Figue<T extends Schema> {
   private schemaFlat: { path: string[]; schema: SchemaObj }[];
