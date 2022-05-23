@@ -286,6 +286,24 @@ When a config variable has multiple possible value, the order of priority is:
 </tr>
 
 <tr>
+<td>Boolean </td>
+<td>A boolean variable. Env variable (string) are coerced with `value.trim().toLowerCase() === 'true'`</td>
+<td>
+
+```js
+{
+  env: {
+    doc: 'Enable foo',
+    format: 'boolean',
+    default: false,
+  }
+}
+```
+
+</td>
+</tr>
+
+<tr>
 <td>Any </td>
 <td>It can be anything</td>
 <td>
