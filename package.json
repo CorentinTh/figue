@@ -1,6 +1,6 @@
 {
   "name": "figue",
-  "version": "0.0.0",
+  "version": "1.0.0",
   "description": "Platform agnostic configuration management library, with environmental variables and validation, like convict",
   "funding": "https://github.com/sponsors/CorentinTh",
   "author": "Corentin Th <corentin.thomasset74+npm@gmail.com> (https://github.com/CorentinTh)",
