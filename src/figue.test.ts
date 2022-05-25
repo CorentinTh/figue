@@ -203,5 +203,21 @@ describe('figue', () => {
 
       expect(config).toEqual({ db: 2 });
     });
+
+    it('should config', () => {
+      const config = figue({
+        db: {
+          format: 'custom',
+          default: 1,
+          coerce: (value) => value.toString().split(','),
+          env: 'key',
+        },
+      })
+        .loadEnv({ key: 'a,b,c' })
+        .validate()
+        .getConfig();
+
+      expect(config).toEqual({ db: ['a', 'b', 'c'] });
+    });
   });
 });

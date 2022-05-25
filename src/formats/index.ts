@@ -4,8 +4,9 @@ import { format as enumFormat, SchemaObjEnum } from './enum/enum';
 import { format as anyFormat, SchemaObjAny } from './any/any';
 import { format as stringFormat, SchemaObjString } from './string/string';
 import { format as booleanFormat, SchemaObjBoolean } from './boolean/boolean';
+import { format as customFormat, SchemaObjCustom } from './custom/custom';
 
-export type SchemaObj = SchemaObjInteger | SchemaObjEnum | SchemaObjFloat | SchemaObjAny | SchemaObjString | SchemaObjBoolean;
+export type SchemaObj = SchemaObjInteger | SchemaObjEnum | SchemaObjFloat | SchemaObjAny | SchemaObjString | SchemaObjBoolean | SchemaObjCustom;
 
 export type Format = {
   validate(value: unknown, schema: SchemaObj): boolean;
@@ -19,4 +20,5 @@ export const formats: { [k: string]: Format } = {
   any: anyFormat,
   string: stringFormat,
   boolean: booleanFormat,
+  custom: customFormat,
 };

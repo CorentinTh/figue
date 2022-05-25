@@ -304,6 +304,26 @@ When a config variable has multiple possible value, the order of priority is:
 </tr>
 
 <tr>
+<td>Custom</td>
+<td>You can define your own validation and coercion function</td>
+<td>
+
+```js
+{
+  foo: {
+    doc: 'Array of things',
+    format: 'custom',
+    validate: (value) => _.isString(value)
+    coerce: (value) => value.split('-')
+    default: 'a-b-c',
+  }
+}
+```
+
+</td>
+</tr>
+
+<tr>
 <td>Any </td>
 <td>It can be anything</td>
 <td>
