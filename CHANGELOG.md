@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.2.0](https://github.com/CorentinTh/figue/compare/v1.1.2...v1.2.0) (2022-05-25)
+
+
+### Features
+
+* **format:** custom format ([f0b17cb](https://github.com/CorentinTh/figue/commit/f0b17cbe0693643c0dc3218f125ff70e5b910cfb))
+* **format:** string array format ([86d863b](https://github.com/CorentinTh/figue/commit/86d863b698cfa2ca03663e37b5122b77c099da55))
+
 ### [1.1.2](https://github.com/CorentinTh/figue/compare/v1.1.1...v1.1.2) (2022-05-23)
 
 
