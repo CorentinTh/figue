@@ -5,8 +5,9 @@ import { format as anyFormat, SchemaObjAny } from './any/any';
 import { format as stringFormat, SchemaObjString } from './string/string';
 import { format as booleanFormat, SchemaObjBoolean } from './boolean/boolean';
 import { format as customFormat, SchemaObjCustom } from './custom/custom';
+import { format as arrayFormat, SchemaObjArray } from './array/array';
 
-export type SchemaObj = SchemaObjInteger | SchemaObjEnum | SchemaObjFloat | SchemaObjAny | SchemaObjString | SchemaObjBoolean | SchemaObjCustom;
+export type SchemaObj = SchemaObjInteger | SchemaObjEnum | SchemaObjFloat | SchemaObjAny | SchemaObjString | SchemaObjBoolean | SchemaObjCustom | SchemaObjArray;
 
 export type Format = {
   validate(value: unknown, schema: SchemaObj): boolean;
@@ -21,4 +22,5 @@ export const formats: { [k: string]: Format } = {
   string: stringFormat,
   boolean: booleanFormat,
   custom: customFormat,
+  array: arrayFormat,
 };
