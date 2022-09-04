@@ -1,1 +1,1 @@
-export { Figue, figue, type Schema } from './figue';
+export { figue, getAjv } from './figue';

@@ -1,223 +1,186 @@
 import { describe, expect, it } from 'vitest';
-import { flattenSchema, figue } from './figue';
+import { buildEnvObject, figue, getEnvMapper } from './figue';
 
-describe('flattenSchema', () => {
-  describe('when an empty schema is passed', () => {
-    it('should return an empty array', () => {
-      const flatSchema = flattenSchema({});
-
-      expect(flatSchema).toHaveLength(0);
-    });
-  });
-
-  describe('when a schema with only one depth items is passed', () => {
-    it('should return an array of schema', () => {
-      const flatSchema = flattenSchema({
-        foo: {
-          format: 'integer',
-          default: 1,
-        },
-        bar: {
-          format: 'integer',
-          default: 1,
-        },
-      });
-
-      expect(flatSchema).toHaveLength(2);
-      expect(flatSchema).toEqual([
-        {
-          path: ['foo'],
-          schema: {
-            format: 'integer',
-            default: 1,
+describe('figue tests', () => {
+  describe('getEnvMapper', () => {
+    it('flatten a schema to a record', () => {
+      const schema = {
+        type: 'object',
+        properties: {
+          a: {
+            type: 'string',
+            env: 'ENV_A',
           },
-        },
-        {
-          path: ['bar'],
-          schema: {
-            format: 'integer',
-            default: 1,
-          },
-        },
-      ]);
-    });
-
-    describe('when a deep schema is  passed', () => {
-      it('should return an array of schema', () => {
-        const flatSchema = flattenSchema({
-          baz: {
-            foo: {
-              format: 'integer',
-              default: 1,
-            },
-            bar: {
-              format: 'integer',
-              default: 1,
-            },
-          },
-          lorem: {
-            ipsum: {
-              dolor: {
-                format: 'integer',
-                default: 1,
+          b: {
+            type: 'object',
+            properties: {
+              c: {
+                type: 'number',
+                env: 'ENV_C',
               },
             },
           },
-        });
+        },
+      } as const;
 
-        expect(flatSchema).toHaveLength(3);
-        expect(flatSchema).toEqual([
-          {
-            path: ['baz', 'foo'],
-            schema: {
-              format: 'integer',
-              default: 1,
-            },
-          },
-          {
-            path: ['baz', 'bar'],
-            schema: {
-              format: 'integer',
-              default: 1,
-            },
-          },
-          {
-            path: ['lorem', 'ipsum', 'dolor'],
-            schema: {
-              format: 'integer',
-              default: 1,
-            },
-          },
-        ]);
-      });
+      const expectedEnvMapper = {
+        ENV_A: 'a',
+        ENV_C: 'b.c',
+      };
+
+      const envMapper = getEnvMapper({ schema });
+
+      expect(envMapper).to.eql(expectedEnvMapper);
     });
   });
-});
 
-describe('figue', () => {
-  describe('getConfig', () => {
-    describe('value order', () => {
-      it('when a env value is present the config variable should have the value of the env value', () => {
-        const config = figue({
-          foo: {
-            format: 'integer',
-            default: 1,
-            env: 'FOO',
-          },
-        })
-          .loadEnv({ FOO: 2 })
-          .loadConfig({ foo: 3 })
-          .getConfig();
+  describe('buildEnvObject', () => {
+    it('build an object from an envMapper', () => {
+      const envVariables = {
+        ENV_A: 'foo',
+        ENV_B: 'bar',
+        ENV_C: 'baz',
+      };
 
-        expect(config).toEqual({ foo: 2 });
-      });
+      const envMapper = {
+        ENV_A: 'a',
+        ENV_C: 'b.c',
+      };
 
-      it('when a env value is not present the config variable should have the value of the config arg', () => {
-        const config = figue({
-          foo: {
-            format: 'integer',
-            default: 1,
-            env: 'FOO',
-          },
-        })
-          .loadEnv({})
-          .loadConfig({ foo: 3 })
-          .getConfig();
+      const expectedObject = {
+        a: 'foo',
+        b: { c: 'baz' },
+      };
 
-        expect(config).toEqual({ foo: 3 });
-      });
+      const builtObject = buildEnvObject({ envVariables, envMapper });
 
-      it('when a env value an a config arg are not present the config variable should have the default value', () => {
-        const config = figue({
-          foo: {
-            format: 'integer',
-            default: 1,
-            env: 'FOO',
-          },
-        })
-          .loadEnv({})
-          .loadConfig({})
-          .getConfig();
-
-        expect(config).toEqual({ foo: 1 });
-      });
+      expect(builtObject).to.eql(expectedObject);
     });
 
-    it('return the config', () => {
-      const config = figue({
-        foo: {
-          bar: {
-            format: 'integer',
-            default: 1,
+    it('return an empty object if their is no intersection with envMapper', () => {
+      const envVariables = {
+        ENV_A: 'foo',
+        ENV_B: 'bar',
+        ENV_C: 'baz',
+      };
+
+      const envMapper = {
+        otherKey: 'p.o',
+      };
+
+      const expectedObject = {};
+
+      const builtObject = buildEnvObject({ envVariables, envMapper });
+
+      expect(builtObject).to.eql(expectedObject);
+    });
+  });
+
+  describe('figue', () => {
+    it('parses defaults args', () => {
+      const schema = {
+        type: 'object',
+        properties: {
+          a: { type: 'string', default: 'value' },
+        },
+      } as const;
+
+      const config = figue(schema).getConfig();
+      const expectedConfig = { a: 'value' };
+
+      expect(config).to.eql(expectedConfig);
+    });
+
+    it('create config with value from env ', () => {
+      const schema = {
+        type: 'object',
+        properties: {
+          a: { type: 'string', default: 'default value', env: 'ENV_A' },
+          b: {
+            type: 'object',
+            properties: {
+              c: {
+                type: 'number',
+                env: 'ENV_C',
+              },
+            },
           },
-          baz: {
-            format: 'string',
-            default: 'yo',
+        },
+      } as const;
+
+      const env = {
+        ENV_A: 'value A from env',
+        ENV_C: 'value C from env',
+      };
+
+      const config = figue(schema).loadEnv(env).getConfig();
+      const expectedConfig = { a: 'value A from env', b: { c: 'value C from env' } };
+
+      expect(config).to.eql(expectedConfig);
+    });
+
+    it('replace config with value from the loaded config ', () => {
+      const schema = {
+        type: 'object',
+        properties: {
+          a: { type: 'string', default: 'default value', env: 'ENV_A' },
+          b: {
+            type: 'object',
+            properties: {
+              c: {
+                type: 'number',
+                env: 'ENV_C',
+              },
+            },
           },
         },
-      }).getConfig();
+      } as const;
 
-      expect(config).toEqual({ foo: { bar: 1, baz: 'yo' } });
+      const configToLoad = {
+        a: 'foo',
+        b: { c: 'bar' },
+      };
+
+      const config = figue(schema).loadConfig(configToLoad).getConfig();
+      const expectedConfig = { a: 'foo', b: { c: 'bar' } };
+
+      expect(config).to.eql(expectedConfig);
     });
 
-    it('return the config', () => {
-      const config = figue({
-        db: {
-          format: 'integer',
-          default: 1,
-          env: 'key',
+    it('takes env value in priority', () => {
+      const schema = {
+        type: 'object',
+        properties: {
+          a: { type: 'string', default: 'default value', env: 'ENV_A' },
+          b: {
+            type: 'object',
+            properties: {
+              c: {
+                type: 'number',
+                env: 'ENV_C',
+              },
+              d: {
+                type: 'number',
+                default: 'd default',
+              },
+            },
+          },
         },
-      })
-        .loadEnv({ key: 2 })
-        .getConfig();
+      } as const;
 
-      expect(config).toEqual({ db: 2 });
-    });
+      const configToLoad = {
+        a: 'foo',
+        b: { c: 'bar' },
+      };
 
-    it('should validate', () => {
-      const config = figue({
-        db: {
-          format: 'integer',
-          default: 1,
-          env: 'key',
-        },
-      })
-        .loadEnv({ key: '2' })
-        .validate()
-        .getConfig();
+      const env = {
+        ENV_A: 'value A from env',
+      };
 
-      expect(config).toEqual({ db: 2 });
-    });
+      const config = figue(schema).loadConfig(configToLoad).loadEnv(env).getConfig();
+      const expectedConfig = { a: 'value A from env', b: { c: 'bar', d: 'd default' } };
 
-    it('should config', () => {
-      const config = figue({
-        db: {
-          format: 'integer',
-          default: 1,
-          env: 'key',
-        },
-      })
-        .loadConfig({ db: 2 })
-        .validate()
-        .getConfig();
-
-      expect(config).toEqual({ db: 2 });
-    });
-
-    it('should config', () => {
-      const config = figue({
-        db: {
-          format: 'custom',
-          default: 1,
-          coerce: (value) => value.toString().split(','),
-          env: 'key',
-        },
-      })
-        .loadEnv({ key: 'a,b,c' })
-        .validate()
-        .getConfig();
-
-      expect(config).toEqual({ db: ['a', 'b', 'c'] });
+      expect(config).to.eql(expectedConfig);
     });
   });
 });

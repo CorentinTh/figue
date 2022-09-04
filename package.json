@@ -1,7 +1,7 @@
 {
   "name": "figue",
   "version": "1.2.0",
-  "description": "Platform agnostic configuration management library, with environmental variables and validation, like convict",
+  "description": "Platform agnostic configuration management library, with environmental variables and validation, like convict but cross-env and with JSON Schema",
   "funding": "https://github.com/sponsors/CorentinTh",
   "author": "Corentin Th <corentin.thomasset74+npm@gmail.com> (https://github.com/CorentinTh)",
   "keywords": [
@@ -48,20 +48,26 @@
     "test": "vitest"
   },
   "devDependencies": {
+    "@types/json-schema": "^7.0.11",
     "@types/lodash": "^4.14.182",
     "@typescript-eslint/eslint-plugin": "^5.23.0",
     "@typescript-eslint/parser": "^5.23.0",
     "c8": "^7.11.3",
     "eslint": "^8.15.0",
     "eslint-config-prettier": "^8.5.0",
+    "json-schema-to-ts": "^2.5.5",
     "prettier": "^2.6.2",
     "standard-version": "latest",
+    "ts-essentials": "^9.3.0",
     "typescript": "latest",
     "unbuild": "latest",
     "vitest": "latest"
   },
   "packageManager": "pnpm@7.0.0",
   "dependencies": {
+    "ajv": "^8.11.0",
+    "ajv-formats": "^2.1.1",
+    "ajv-keywords": "^5.1.0",
     "lodash": "^4.17.21"
   }
 }

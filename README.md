@@ -2,7 +2,7 @@
 
 [![ci](https://github.com/CorentinTh/figue/actions/workflows/ci.yml/badge.svg)](https://github.com/CorentinTh/figue/actions/workflows/ci.yml)
 
-> Platform agnostic configuration management library, with environmental variables and validation, like [convict](https://github.com/mozilla/node-convict/tree/master/packages/convict) (but simpler, more modern, and written in ts).
+> Platform agnostic configuration management library, with environmental variables and validation, like [convict](https://github.com/mozilla/node-convict/tree/master/packages/convict) but simpler, cross env and using json schema.
 
 ## Usage
 
@@ -38,44 +38,54 @@ import { figue } from 'figue';
 
 // Define the schema
 const config = figue({
-  env: {
-    doc: 'Application current environment',
-    format: 'enum',
-    values: ['production', 'development', 'test'],
-    default: 'development',
-    env: 'NODE_ENV',
-  },
-  port: {
-    doc: 'Application port to listen',
-    format: 'integer',
-    default: 3000,
-    env: 'PORT',
-  },
-  db: {
-    host: {
-      doc: 'Database server host',
-      format: 'string',
-      default: 'localhost',
-      env: 'APP_DB_HOST',
+  type: 'object',
+  allRequired: true,
+  default: {},
+  properties: {
+    env: {
+      doc: 'Application current environment',
+      type: 'string',
+      enum: ['production', 'development', 'test'],
+      default: 'development',
+      env: 'NODE_ENV',
     },
-    username: {
-      doc: 'Database server username',
-      format: 'string',
-      default: 'pg',
-      env: 'APP_DB_USERNAME',
+    port: {
+      doc: 'Application port to listen',
+      type: 'integer',
+      default: 3000,
+      env: 'PORT',
     },
-    password: {
-      doc: 'Database server password',
-      format: 'string',
-      default: '',
-      env: 'APP_DB_PASSWORD',
+    db: {
+      type: 'object',
+      allRequired: true,
+      default: {},
+      properties: {
+        host: {
+          doc: 'Database server host',
+          type: 'string',
+          format: 'hostname',
+          default: 'localhost',
+          env: 'APP_DB_HOST',
+        },
+        username: {
+          doc: 'Database server username',
+          type: 'string',
+          default: 'pg',
+          env: 'APP_DB_USERNAME',
+        },
+        password: {
+          doc: 'Database server password',
+          type: 'string',
+          format: 'password',
+          default: '',
+          env: 'APP_DB_PASSWORD',
+        },
+      },
     },
   },
 })
   // Load the environnement variables
-  .loadEnv(process.env)
-  // Validate the config
-  .validate()
+  .loadEnv(process.env) // Or .loadEnv(import.meta.env) for vite
   // Get the config
   .getConfig();
 
@@ -103,7 +113,6 @@ const config = figue({
   /* schema */
 })
   .loadEnv(process.env)
-  .validate()
   .getConfig();
 ```
 
@@ -117,7 +126,6 @@ const config = figue({
   /* schema */
 })
   .loadEnv(import.meta.env)
-  .validate()
   .getConfig();
 ```
 
@@ -128,18 +136,29 @@ import { figue } from 'figue';
 
 // Define the schema
 const config = figue({
-  db: {
-    host: {
-      doc: 'Database server host',
-      format: 'string',
-      default: 'localhost',
-      env: 'APP_DB_HOST',
-    },
-    username: {
-      doc: 'Database server username',
-      format: 'string',
-      default: 'pg',
-      env: 'APP_DB_USERNAME',
+  type: 'object',
+  allRequired: true,
+  default: {},
+  properties: {
+    db: {
+      type: 'object',
+      allRequired: true,
+      default: {},
+      properties: {
+        host: {
+          doc: 'Database server host',
+          type: 'string',
+          format: 'hostname',
+          default: 'localhost',
+          env: 'APP_DB_HOST',
+        },
+        username: {
+          doc: 'Database server username',
+          type: 'string',
+          default: 'pg',
+          env: 'APP_DB_USERNAME',
+        },
+      },
     },
   },
 })
@@ -149,7 +168,6 @@ const config = figue({
       username: 'super-root',
     },
   })
-  .validate()
   .getConfig();
 ```
 
@@ -165,7 +183,6 @@ const config = figue({
   /**/
 })
   .loadConfig(configValues)
-  .validate()
   .getConfig();
 ```
 
@@ -180,17 +197,21 @@ import { figue } from 'figue';
 
 // Define the schema
 const config = figue({
-  var: {
-    doc: 'Dummy example',
-    format: 'string',
-    default: 'foo',
-    env: 'my-env-key',
+  type: 'object',
+  allRequired: true,
+  default: {},
+  properties: {
+    var: {
+      doc: 'Dummy example',
+      type: 'string',
+      default: 'foo',
+      env: 'my-env-key',
+    },
   },
 })
   .loadEnv({
     'my-env-key': 'bar',
   })
-  .validate()
   .getConfig();
 ```
 
@@ -202,147 +223,32 @@ When a config variable has multiple possible value, the order of priority is:
 
 ## Formats available
 
-<table>
-<thead>
-<tr>
-<th>Format name</th>
-<th>Description</th>
-<th>Example</th>
-</tr>
-</thead>
+Figue uses Ajv under the hood with [ajv-formats](https://www.npmjs.com/package/ajv-formats) and [ajv-keywords](https://www.npmjs.com/package/ajv-keywords) extensions in addition to the basic JSON Schema types.
+So please refer to this document to know more about available formats.
 
-<tbody>
-<tr>
-<td>String </td>
-<td>Basically an string</td>
-<td>
+## Extending Ajv
 
-```js
-{
-  foo: {
-    doc: 'My string variable',
-    format: 'string',
-    default: 'lorem ipsum',
-  }
-}
+You can pass your own Ajv instance...
+
+```typescript
+import { figue } from 'figue';
+
+const ajv = Ajv();
+
+// Define the schema
+const config = figue(schema, { ajv }).loadEnv(process.env).getConfig();
 ```
 
-</td>
-</tr>
+...or extends the default one
 
-<tr>
-<td>Integer </td>
-<td>Basically an integer, no floating point</td>
-<td>
+```typescript
+import { figue, getAjv } from 'figue';
 
-```js
-{
-  foo: {
-    doc: 'My integer variable',
-    format: 'integer',
-    default: 42,
-  }
-}
+const ajv = getAjv();
+
+// Define the schema
+const config = figue(schema, { ajv }).loadEnv(process.env).getConfig();
 ```
-
-</td>
-</tr>
-
-<tr>
-<td>Float </td>
-<td>A floating point value</td>
-<td>
-
-```js
-{
-  foo: {
-    doc: 'My float variable',
-    format: 'float',
-    default: 0.5,
-  }
-}
-```
-
-</td>
-</tr>
-
-<tr>
-<td>Enum </td>
-<td>A variable from an enum specified by the `values` key</td>
-<td>
-
-```js
-{
-  env: {
-    doc: 'Application current environment',
-    format: 'enum',
-    values: ['production', 'development', 'test'],
-    default: 'development',
-  }
-}
-```
-
-</td>
-</tr>
-
-<tr>
-<td>Boolean </td>
-<td>A boolean variable. Env variable (string) are coerced with `value.trim().toLowerCase() === 'true'`</td>
-<td>
-
-```js
-{
-  env: {
-    doc: 'Enable foo',
-    format: 'boolean',
-    default: false,
-  }
-}
-```
-
-</td>
-</tr>
-
-<tr>
-<td>Custom</td>
-<td>You can define your own validation and coercion function</td>
-<td>
-
-```js
-{
-  foo: {
-    doc: 'Array of things',
-    format: 'custom',
-    validate: (value) => _.isString(value)
-    coerce: (value) => value.split('-')
-    default: 'a-b-c',
-  }
-}
-```
-
-</td>
-</tr>
-
-<tr>
-<td>Any </td>
-<td>It can be anything</td>
-<td>
-
-```js
-{
-  foo: {
-    doc: 'My dumb variable',
-    format: 'any',
-    default: 'yo',
-  }
-}
-```
-
-</td>
-</tr>
-
-</tbody>
-</table>
 
 ## What's wrong with convict?
 
