@@ -91,12 +91,3 @@ function figue<S extends JSONSchema>(schema: S, { ajv = getAjv() }: { ajv?: Ajv 
     },
   };
 }
-
-figue({
-  type: 'object',
-  properties: {
-    a: {
-      type: 'integer',
-    },
-  },
-});
