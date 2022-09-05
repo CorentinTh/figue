@@ -1,12 +1,19 @@
 import Ajv from 'ajv';
 import { FromSchema, JSONSchema } from 'json-schema-to-ts';
 import _ from 'lodash';
-import type { DeepRequired } from 'ts-essentials';
 
 import addAJVFormats from 'ajv-formats';
 import addAJVKeywords from 'ajv-keywords';
 
 export { figue, getEnvMapper, buildEnvObject, getAjv };
+
+type RemoveIndex<T> = {
+  [K in keyof T as string extends K ? never : number extends K ? never : K]: T[K];
+};
+
+type KnownKeys<T> = keyof RemoveIndex<T>;
+
+export type DeepRequired<T> = T extends object ? { [K in keyof Pick<T, KnownKeys<T>>]-?: DeepRequired<T[K]> } : Required<T>;
 
 type EnvObject = Record<string, unknown>;
 
