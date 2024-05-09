@@ -1,223 +1,58 @@
-import { describe, expect, it } from 'vitest';
-import { flattenSchema, figue } from './figue';
+import { describe, expect, test } from 'vitest';
+import { z } from 'zod';
+import { defineConfig } from './figue';
 
-describe('flattenSchema', () => {
-  describe('when an empty schema is passed', () => {
-    it('should return an empty array', () => {
-      const flatSchema = flattenSchema({});
-
-      expect(flatSchema).toHaveLength(0);
-    });
-  });
-
-  describe('when a schema with only one depth items is passed', () => {
-    it('should return an array of schema', () => {
-      const flatSchema = flattenSchema({
-        foo: {
-          format: 'integer',
-          default: 1,
-        },
-        bar: {
-          format: 'integer',
-          default: 1,
-        },
-      });
-
-      expect(flatSchema).toHaveLength(2);
-      expect(flatSchema).toEqual([
+describe('figue tests', () => {
+  describe('defineConfig', () => {
+    test('simple valid config without default', () => {
+      const { config } = defineConfig(
         {
-          path: ['foo'],
-          schema: {
-            format: 'integer',
-            default: 1,
-          },
-        },
-        {
-          path: ['bar'],
-          schema: {
-            format: 'integer',
-            default: 1,
-          },
-        },
-      ]);
-    });
-
-    describe('when a deep schema is  passed', () => {
-      it('should return an array of schema', () => {
-        const flatSchema = flattenSchema({
-          baz: {
-            foo: {
-              format: 'integer',
-              default: 1,
-            },
+          foo: {
             bar: {
-              format: 'integer',
-              default: 1,
+              schema: z.string(),
+              env: 'BAR',
             },
           },
-          lorem: {
-            ipsum: {
-              dolor: {
-                format: 'integer',
-                default: 1,
-              },
-            },
+          baz: {
+            schema: z.coerce.number(),
+            env: 'BAZ',
           },
-        });
-
-        expect(flatSchema).toHaveLength(3);
-        expect(flatSchema).toEqual([
-          {
-            path: ['baz', 'foo'],
-            schema: {
-              format: 'integer',
-              default: 1,
-            },
+        },
+        {
+          envSource: {
+            BAR: 'bar',
+            BAZ: '42',
           },
-          {
-            path: ['baz', 'bar'],
-            schema: {
-              format: 'integer',
-              default: 1,
-            },
-          },
-          {
-            path: ['lorem', 'ipsum', 'dolor'],
-            schema: {
-              format: 'integer',
-              default: 1,
-            },
-          },
-        ]);
-      });
-    });
-  });
-});
+        },
+      );
 
-describe('figue', () => {
-  describe('getConfig', () => {
-    describe('value order', () => {
-      it('when a env value is present the config variable should have the value of the env value', () => {
-        const config = figue({
-          foo: {
-            format: 'integer',
-            default: 1,
-            env: 'FOO',
-          },
-        })
-          .loadEnv({ FOO: 2 })
-          .loadConfig({ foo: 3 })
-          .getConfig();
-
-        expect(config).toEqual({ foo: 2 });
-      });
-
-      it('when a env value is not present the config variable should have the value of the config arg', () => {
-        const config = figue({
-          foo: {
-            format: 'integer',
-            default: 1,
-            env: 'FOO',
-          },
-        })
-          .loadEnv({})
-          .loadConfig({ foo: 3 })
-          .getConfig();
-
-        expect(config).toEqual({ foo: 3 });
-      });
-
-      it('when a env value an a config arg are not present the config variable should have the default value', () => {
-        const config = figue({
-          foo: {
-            format: 'integer',
-            default: 1,
-            env: 'FOO',
-          },
-        })
-          .loadEnv({})
-          .loadConfig({})
-          .getConfig();
-
-        expect(config).toEqual({ foo: 1 });
+      expect(config).toEqual({
+        foo: {
+          bar: 'bar',
+        },
+        baz: 42,
       });
     });
 
-    it('return the config', () => {
-      const config = figue({
+    test('default value can be defined with zod default or using the default key', () => {
+      const { config } = defineConfig({
         foo: {
           bar: {
-            format: 'integer',
-            default: 1,
-          },
-          baz: {
-            format: 'string',
-            default: 'yo',
+            schema: z.string().default('default'),
           },
         },
-      }).getConfig();
-
-      expect(config).toEqual({ foo: { bar: 1, baz: 'yo' } });
-    });
-
-    it('return the config', () => {
-      const config = figue({
-        db: {
-          format: 'integer',
-          default: 1,
-          env: 'key',
+        baz: {
+          schema: z.coerce.number(),
+          default: 42,
         },
-      })
-        .loadEnv({ key: 2 })
-        .getConfig();
+      });
 
-      expect(config).toEqual({ db: 2 });
-    });
-
-    it('should validate', () => {
-      const config = figue({
-        db: {
-          format: 'integer',
-          default: 1,
-          env: 'key',
+      expect(config).toEqual({
+        foo: {
+          bar: 'default',
         },
-      })
-        .loadEnv({ key: '2' })
-        .validate()
-        .getConfig();
-
-      expect(config).toEqual({ db: 2 });
-    });
-
-    it('should config', () => {
-      const config = figue({
-        db: {
-          format: 'integer',
-          default: 1,
-          env: 'key',
-        },
-      })
-        .loadConfig({ db: 2 })
-        .validate()
-        .getConfig();
-
-      expect(config).toEqual({ db: 2 });
-    });
-
-    it('should config', () => {
-      const config = figue({
-        db: {
-          format: 'custom',
-          default: 1,
-          coerce: (value) => value.toString().split(','),
-          env: 'key',
-        },
-      })
-        .loadEnv({ key: 'a,b,c' })
-        .validate()
-        .getConfig();
-
-      expect(config).toEqual({ db: ['a', 'b', 'c'] });
+        baz: 42,
+      });
     });
   });
 });

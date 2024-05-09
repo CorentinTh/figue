@@ -2,7 +2,7 @@
 
 [![ci](https://github.com/CorentinTh/figue/actions/workflows/ci.yml/badge.svg)](https://github.com/CorentinTh/figue/actions/workflows/ci.yml)
 
-> Platform agnostic configuration management library, with environmental variables and validation, like [convict](https://github.com/mozilla/node-convict/tree/master/packages/convict) (but simpler, more modern, and written in ts).
+> Platform agnostic configuration management library, with environmental variables and validation, like [convict](https://github.com/mozilla/node-convict/tree/master/packages/convict) but simpler, cross env and using [zod schemas](https://github.com/colinhacks/zod).
 
 ## Usage
 
@@ -23,10 +23,10 @@ Import:
 
 ```js
 // ESM
-import { figue } from 'figue';
+import { defineConfig, z } from "figue";
 
 // CommonJS
-const { figue } = require('figue');
+const { defineConfig, z } = require("figue");
 ```
 
 ## API
@@ -34,315 +34,126 @@ const { figue } = require('figue');
 ### Basic example
 
 ```typescript
-import { figue } from 'figue';
+import { defineConfig, z } from "figue";
 
-// Define the schema
-const config = figue({
-  env: {
-    doc: 'Application current environment',
-    format: 'enum',
-    values: ['production', 'development', 'test'],
-    default: 'development',
-    env: 'NODE_ENV',
-  },
-  port: {
-    doc: 'Application port to listen',
-    format: 'integer',
-    default: 3000,
-    env: 'PORT',
-  },
-  db: {
-    host: {
-      doc: 'Database server host',
-      format: 'string',
-      default: 'localhost',
-      env: 'APP_DB_HOST',
+const { config } = defineConfig(
+  {
+    env: {
+      doc: "Application current environment",
+      default: "development",
+      schema: z.enum(["development", "production", "test"]),
+      env: "NODE_ENV",
     },
-    username: {
-      doc: 'Database server username',
-      format: 'string',
-      default: 'pg',
-      env: 'APP_DB_USERNAME',
+    port: {
+      doc: "Application port to listen",
+      schema: z.coerce.number().int().positive(),
+      default: 3000,
+      env: "PORT",
     },
-    password: {
-      doc: 'Database server password',
-      format: 'string',
-      default: '',
-      env: 'APP_DB_PASSWORD',
+    db: {
+      host: {
+        doc: "Database server url",
+        schema: z.string().url(),
+        default: "localhost",
+        env: "APP_DB_HOST",
+      },
+      username: {
+        doc: "Database server username",
+        schema: z.string(),
+        default: "pg",
+        env: "APP_DB_USERNAME",
+      },
+      password: {
+        doc: "Database server password",
+        schema: z.string(),
+        default: "",
+        env: "APP_DB_PASSWORD",
+      },
     },
   },
-})
-  // Load the environnement variables
-  .loadEnv(process.env)
-  // Validate the config
-  .validate()
-  // Get the config
-  .getConfig();
+  {
+    envSource: process.env,
+  }
+);
 
 console.log(config);
 // {
-//   env: 'development',
+//   env: "development",
 //   port: 3000,
 //   db: {
-//     host: 'localhost',
-//     username: 'pg',
-//     password: '',
+//     url: "https://localhost",
+//     username: "pg",
+//     password: "",
 //   },
 // }
 ```
 
 ### Load environnement
 
-Use the `loadEnv` method to specify you environnement variables that will be used by the `env` keys
+Use the `envSource` key of the second argument of `defineConfig` to specify the source of the environment variables:
 
 ```typescript
-import { figue } from 'figue';
-
-// Define the schema
-const config = figue({
-  /* schema */
-})
-  .loadEnv(process.env)
-  .validate()
-  .getConfig();
+const { config } = defineConfig(
+  {
+    /* ... */
+  },
+  {
+    envSource: process.env,
+  }
+);
 ```
 
 In some case you don't have access to a `process.env` variable, like with `vite`, just simply load what stores your env variables :
 
 ```typescript
-import { figue } from 'figue';
-
-// Define the schema
-const config = figue({
-  /* schema */
-})
-  .loadEnv(import.meta.env)
-  .validate()
-  .getConfig();
+const { config } = defineConfig(
+  {
+    /* ... */
+  },
+  {
+    envSource: import.meta.env,
+  }
+);
 ```
 
 You can even specify you custom environment storage as long as it's a simple flat object map, for example:
 
 ```typescript
-import { figue } from 'figue';
+const { config } = defineConfig(
+  {
+    env: {
+      doc: "Application current environment",
+      default: "development",
+      schema: z.enum(["development", "production", "test"]),
+      env: "NODE_ENV",
+    },
 
-// Define the schema
-const config = figue({
-  db: {
-    host: {
-      doc: 'Database server host',
-      format: 'string',
-      default: 'localhost',
-      env: 'APP_DB_HOST',
-    },
-    username: {
-      doc: 'Database server username',
-      format: 'string',
-      default: 'pg',
-      env: 'APP_DB_USERNAME',
-    },
+    /* ... */
   },
-})
-  .loadConfig({
-    db: {
-      host: 'prod.example.com',
-      username: 'super-root',
+  {
+    envSource: {
+      NODE_ENV: "development",
+      PORT: "3000",
+      APP_DB_HOST: "localhost",
+      APP_DB_USERNAME: "pg",
+      APP_DB_PASSWORD: "",
     },
-  })
-  .validate()
-  .getConfig();
+  }
+);
 ```
 
-From a json file :
+If, for some reason, you have multiple sources of environment variables, you can use the `envSources` key of the second argument of `defineConfig` to specify an array of sources:
 
 ```typescript
-import { figue } from 'figue';
-
-import configValues from '../settings.json';
-
-// Define the schema
-const config = figue({
-  /**/
-})
-  .loadConfig(configValues)
-  .validate()
-  .getConfig();
-```
-
-If you call `loadEnv` multiple times, the objects passed as argument will be merged and in cas of a conflict, the value of the last env loaded will be used.
-
-### Loading a config
-
-Sometime you may want to load you config value from a custom object (maybe from a config file ?)
-
-```typescript
-import { figue } from 'figue';
-
-// Define the schema
-const config = figue({
-  var: {
-    doc: 'Dummy example',
-    format: 'string',
-    default: 'foo',
-    env: 'my-env-key',
+const { config } = defineConfig(
+  {
+    /* ... */
   },
-})
-  .loadEnv({
-    'my-env-key': 'bar',
-  })
-  .validate()
-  .getConfig();
-```
-
-## Which value is used?
-
-When a config variable has multiple possible value, the order of priority is:
-
-**Env value** (if exists) > **Config value** (if exists) > **Default value**
-
-## Formats available
-
-<table>
-<thead>
-<tr>
-<th>Format name</th>
-<th>Description</th>
-<th>Example</th>
-</tr>
-</thead>
-
-<tbody>
-<tr>
-<td>String </td>
-<td>Basically an string</td>
-<td>
-
-```js
-{
-  foo: {
-    doc: 'My string variable',
-    format: 'string',
-    default: 'lorem ipsum',
+  {
+    envSource: [import.meta.env, myEnvs],
   }
-}
+);
 ```
-
-</td>
-</tr>
-
-<tr>
-<td>Integer </td>
-<td>Basically an integer, no floating point</td>
-<td>
-
-```js
-{
-  foo: {
-    doc: 'My integer variable',
-    format: 'integer',
-    default: 42,
-  }
-}
-```
-
-</td>
-</tr>
-
-<tr>
-<td>Float </td>
-<td>A floating point value</td>
-<td>
-
-```js
-{
-  foo: {
-    doc: 'My float variable',
-    format: 'float',
-    default: 0.5,
-  }
-}
-```
-
-</td>
-</tr>
-
-<tr>
-<td>Enum </td>
-<td>A variable from an enum specified by the `values` key</td>
-<td>
-
-```js
-{
-  env: {
-    doc: 'Application current environment',
-    format: 'enum',
-    values: ['production', 'development', 'test'],
-    default: 'development',
-  }
-}
-```
-
-</td>
-</tr>
-
-<tr>
-<td>Boolean </td>
-<td>A boolean variable. Env variable (string) are coerced with `value.trim().toLowerCase() === 'true'`</td>
-<td>
-
-```js
-{
-  env: {
-    doc: 'Enable foo',
-    format: 'boolean',
-    default: false,
-  }
-}
-```
-
-</td>
-</tr>
-
-<tr>
-<td>Custom</td>
-<td>You can define your own validation and coercion function</td>
-<td>
-
-```js
-{
-  foo: {
-    doc: 'Array of things',
-    format: 'custom',
-    validate: (value) => _.isString(value)
-    coerce: (value) => value.split('-')
-    default: 'a-b-c',
-  }
-}
-```
-
-</td>
-</tr>
-
-<tr>
-<td>Any </td>
-<td>It can be anything</td>
-<td>
-
-```js
-{
-  foo: {
-    doc: 'My dumb variable',
-    format: 'any',
-    default: 'yo',
-  }
-}
-```
-
-</td>
-</tr>
-
-</tbody>
-</table>
 
 ## What's wrong with convict?
 

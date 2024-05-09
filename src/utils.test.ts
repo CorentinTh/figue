@@ -1,21 +1,20 @@
-import { describe, expect, it } from 'vitest';
-import { isFalsyOrHasThrown } from './utils';
+import { describe, expect, test } from 'vitest';
+import { mapValues, mergeDeep } from './utils';
 
-describe('isFalsyOrHasThrown', () => {
-  describe('when the callback return a boolean', () => {
-    it('should return the inverse value of the callback', () => {
-      expect(isFalsyOrHasThrown(() => true)).toBe(false);
-      expect(isFalsyOrHasThrown(() => false)).toBe(true);
+describe('utils', () => {
+  describe('mapValues', () => {
+    test('permits to iterate over an object values', () => {
+      expect(mapValues({ a: 1, b: 2 }, (value) => value + 1)).toEqual({ a: 2, b: 3 });
     });
   });
 
-  describe('when the callback throw an error', () => {
-    it('should return true', () => {
-      expect(
-        isFalsyOrHasThrown(() => {
-          throw 'error';
-        }),
-      ).toBe(true);
+  describe('mergeDeep', () => {
+    test('merges two objects deeply', () => {
+      expect(mergeDeep({ a: { b: 1 } }, { a: { c: 2 } }, { d: 5 })).toEqual({ a: { b: 1, c: 2 }, d: 5 });
+    });
+
+    test('array values are not merged', () => {
+      expect(mergeDeep({ a: [1] }, { a: [2] })).toEqual({ a: [2] });
     });
   });
 });

@@ -1,7 +1,7 @@
 {
   "name": "figue",
   "version": "1.2.0",
-  "description": "Platform agnostic configuration management library, with environmental variables and validation, like convict",
+  "description": "Platform agnostic configuration management library, with environmental variables and validation, like convict but cross-env and zod schemas",
   "funding": "https://github.com/sponsors/CorentinTh",
   "author": "Corentin Th <corentin.thomasset74+npm@gmail.com> (https://github.com/CorentinTh)",
   "keywords": [
@@ -45,23 +45,19 @@
     "lint": "eslint --ext .ts,.js,.mjs,.cjs .",
     "prepack": "unbuild",
     "release": "standard-version",
-    "test": "vitest"
+    "test": "pnpm run test:unit",
+    "test:unit": "vitest run",
+    "test:unit:watch": "vitest watch",
+    "typecheck": "tsc --noEmit"
   },
   "devDependencies": {
-    "@types/lodash": "^4.14.182",
-    "@typescript-eslint/eslint-plugin": "^5.23.0",
-    "@typescript-eslint/parser": "^5.23.0",
-    "c8": "^7.11.3",
-    "eslint": "^8.15.0",
-    "eslint-config-prettier": "^8.5.0",
-    "prettier": "^2.6.2",
-    "standard-version": "latest",
-    "typescript": "latest",
-    "unbuild": "latest",
-    "vitest": "latest"
+    "standard-version": "^9.5.0",
+    "typescript": "^5.4.5",
+    "unbuild": "^2.0.0",
+    "vitest": "^1.6.0"
   },
-  "packageManager": "pnpm@7.0.0",
+  "packageManager": "pnpm@9.0.6",
   "dependencies": {
-    "lodash": "^4.17.21"
+    "zod": "^3.22.4"
   }
 }

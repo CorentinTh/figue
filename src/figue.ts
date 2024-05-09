@@ -1,119 +1,89 @@
-import _ from 'lodash';
-import { formats, SchemaObj } from './formats/index';
-import { isFalsyOrHasThrown } from './utils';
+import { z } from 'zod';
+import { createConfigValidationError } from './figue.errors';
+import type { ConfigDefinition, ConfigDefinitionElement, EnvRecord, InferSchemaType } from './figue.types';
+import { mapValues, mergeDeep } from './utils';
 
-export interface SchemaObjBase<T> {
-  doc?: string;
-  default: T;
-  env?: string;
-}
+export { defineConfig };
 
-export type Schema = {
-  [k: string]: Schema | SchemaObj;
-};
-
-type Config = {
-  [k: string]: Config | unknown;
-};
-
-type TypeFromSchema<T> = {
-  [P in keyof T]: T[P] extends SchemaObj ? T[P]['default'] : TypeFromSchema<T[P]>;
-};
-
-export function flattenSchema(schema: Schema, keys: string[] = []): { path: string[]; schema: SchemaObj }[] {
-  const acc = [];
-
-  for (const [key, value] of Object.entries(schema)) {
-    const valueHasFormat = Object.entries(value).some(([k, v]) => k === 'format' && _.isString(v));
-
-    const path = [...keys, key];
-    if (_.isObject(value) && !valueHasFormat) {
-      const childAcc = flattenSchema(value as Schema, path);
-      acc.push(...childAcc);
+function buildConfigSchema({ configDefinition }: { configDefinition: ConfigDefinition }) {
+  const schema: any = mapValues(configDefinition, (config) => {
+    if (isConfigDefinitionElement(config)) {
+      return config.schema;
     } else {
-      acc.push({
-        path,
-        schema: value,
+      return buildConfigSchema({
+        configDefinition: config as ConfigDefinition,
       });
     }
-  }
+  });
 
-  return acc;
+  return z.object(schema);
 }
 
-type Env = { [k: string]: number | string | boolean | undefined };
-
-export class Figue<T extends Schema> {
-  private schemaFlat: { path: string[]; schema: SchemaObj }[];
-  private env: Env = {};
-  private config: Config;
-
-  constructor(private schema: T) {
-    this.schemaFlat = flattenSchema(schema);
-  }
-
-  loadEnv(env: Env) {
-    this.env = _.merge(this.env, env);
-
-    return this;
-  }
-
-  loadConfig(config: Config) {
-    this.config = _.merge(this.config, config);
-
-    return this;
-  }
-
-  validate() {
-    const configValues = this.getConfig();
-    const errors = [];
-
-    for (const { path, schema } of this.schemaFlat) {
-      const { format } = schema;
-
-      const { validate } = formats[format] ?? {};
-
-      if (!validate) {
-        throw new Error(`[figue:invalid-format] The format '${format}' does not exist, valid formats are ${Object.keys(formats).join(', ')}.`);
-      }
-
-      const value = _.get(configValues, path);
-
-      if (isFalsyOrHasThrown(() => validate(value, schema))) {
-        errors.push(`[figue:validation-error] The key '${path}' does not comply with the format '${format}', received value ${JSON.stringify(value)}`);
-      }
-    }
-
-    if (errors.length > 0) {
-      throw new TypeError(errors.join('\n'));
-    }
-
-    return this;
-  }
-
-  private getValue({ path, schema }: { path: string[]; schema: SchemaObj }) {
-    const { coerce } = formats[schema.format] ?? {};
-
-    if (!coerce) {
-      throw new Error(`[figue:invalid-format] The format '${schema.format}' does not exist, valid formats are ${Object.keys(formats).join(', ')}.`);
-    }
-
-    const value = this.env[schema.env] ?? _.get(this.config, path) ?? schema.default;
-
-    return coerce?.(value, schema) ?? value;
-  }
-
-  getConfig(): TypeFromSchema<T> {
-    const config = this.schemaFlat.reduce((acc, { path, schema }) => {
-      const value = this.getValue({ path, schema });
-
-      _.set(acc, path, value);
-
-      return acc;
-    }, {});
-
-    return config as TypeFromSchema<T>;
+function isConfigDefinitionElement(config: unknown): config is ConfigDefinitionElement {
+  try {
+    return config instanceof Object && 'schema' in config && config.schema instanceof z.ZodType;
+  } catch (_ignored) {
+    return false;
   }
 }
 
-export const figue = <T extends Schema>(schema: T) => new Figue<T>(schema);
+function buildEnvConfig({ configDefinition, env }: { configDefinition: ConfigDefinition; env: EnvRecord }): Record<string, unknown> {
+  return mapValues(configDefinition, (config) => {
+    if (isConfigDefinitionElement(config)) {
+      const { env: envKey } = config;
+
+      if (envKey === undefined) {
+        return undefined;
+      }
+
+      const value = env[envKey as string];
+      return value;
+    } else {
+      return buildEnvConfig({ configDefinition: config, env });
+    }
+  });
+}
+
+function getConfigDefaults({ configDefinition }: { configDefinition: ConfigDefinition }): Record<string, unknown> {
+  return mapValues(configDefinition, (config, key) => {
+    if (isConfigDefinitionElement(config)) {
+      const { default: defaultValue } = config;
+
+      return defaultValue;
+    } else {
+      return getConfigDefaults({
+        configDefinition: config as ConfigDefinition,
+      });
+    }
+  });
+}
+
+function defineConfig<T extends ConfigDefinition, Config = InferSchemaType<T>>(
+  configDefinition: T,
+  {
+    envSources = [],
+    envSource = {},
+  }: {
+    envSources?: EnvRecord[];
+    envSource?: EnvRecord;
+  } = {},
+) {
+  const env: EnvRecord = [...envSources, envSource].reduce((acc, env) => ({ ...acc, ...env }), {});
+
+  const schema = buildConfigSchema({ configDefinition });
+
+  const envConfig = buildEnvConfig({ configDefinition, env });
+  const defaults = getConfigDefaults({ configDefinition });
+
+  const mergedConfig = mergeDeep(defaults, envConfig);
+
+  const parsingResult = schema.safeParse(mergedConfig);
+
+  if (!parsingResult.success) {
+    throw createConfigValidationError({ issues: parsingResult.error.issues });
+  }
+
+  const { data: config } = parsingResult;
+
+  return { config: config as Config, env, envConfig };
+}
