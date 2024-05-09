@@ -1,100 +1,118 @@
-import Ajv from 'ajv';
-import { FromSchema, JSONSchema } from 'json-schema-to-ts';
-import _ from 'lodash';
+import _ from "lodash";
+import { z } from "zod";
+import { createConfigValidationError } from "./figue.errors";
+import type {
+  ConfigDefinition,
+  ConfigDefinitionElement,
+  EnvRecord,
+  InferSchemaType,
+} from "./figue.types";
+import { mapValues, mergeDeep } from "./utils";
 
-import addAJVFormats from 'ajv-formats';
-import addAJVKeywords from 'ajv-keywords';
+export { defineConfig };
 
-export { figue, getEnvMapper, buildEnvObject, getAjv };
-
-type RemoveIndex<T> = {
-  [K in keyof T as string extends K ? never : number extends K ? never : K]: T[K];
-};
-
-type KnownKeys<T> = keyof RemoveIndex<T>;
-
-export type DeepRequired<T> = T extends object ? { [K in keyof Pick<T, KnownKeys<T>>]-?: DeepRequired<T[K]> } : Required<T>;
-
-type EnvObject = Record<string, unknown>;
-
-function getEnvMapper({ schema }: { schema: JSONSchema }): Record<string, string> {
-  const walk = (node: JSONSchema, keyPrefix: string): Record<string, string> => {
-    if (_.isEmpty(node) || !_.isObject(node)) return {};
-
-    if (node.type === 'object') {
-      return _.reduce(node.properties ?? {}, (acc, value, key) => ({ ...acc, ...walk(value as JSONSchema, [keyPrefix, key].filter(Boolean).join('.')) }), {});
+function buildConfigSchema({
+  configDefinition,
+}: {
+  configDefinition: ConfigDefinition;
+}) {
+  const schema: any = mapValues(configDefinition, (config) => {
+    if (_.has(config, "schema")) {
+      return config.schema;
+    } else {
+      return buildConfigSchema({
+        configDefinition: config as ConfigDefinition,
+      });
     }
+  });
 
-    if (node.env) {
-      return {
-        [node.env]: keyPrefix,
-      };
-    }
-
-    return {};
-  };
-
-  return walk(schema, '');
+  return z.object(schema);
 }
 
-function buildEnvObject({ envVariables, envMapper }: { envVariables: EnvObject; envMapper: Record<string, string> }): unknown {
-  return _.reduce(
-    envVariables,
-    (acc, value, key) => {
-      if (key in envMapper) {
-        _.set(acc, envMapper[key], value);
+function isConfigDefinitionElement(
+  config: unknown
+): config is ConfigDefinitionElement {
+  try {
+    return (
+      config instanceof Object &&
+      "schema" in config &&
+      config.schema instanceof z.ZodType
+    );
+  } catch (_ignored) {
+    return false;
+  }
+}
+
+function buildEnvConfig({
+  configDefinition,
+  env,
+}: {
+  configDefinition: ConfigDefinition;
+  env: EnvRecord;
+}): Record<string, unknown> {
+  return mapValues(configDefinition, (config) => {
+    if (isConfigDefinitionElement(config)) {
+      const { env: envKey } = config;
+
+      if (envKey === undefined) {
+        return undefined;
       }
 
-      return acc;
-    },
-    {},
+      const value = env[envKey as string];
+      return value;
+    } else {
+      return buildEnvConfig({ configDefinition: config, env });
+    }
+  });
+}
+
+function getConfigDefaults({
+  configDefinition,
+}: {
+  configDefinition: ConfigDefinition;
+}): Record<string, unknown> {
+  return mapValues(configDefinition, (config, key) => {
+    if (isConfigDefinitionElement(config)) {
+      const { default: defaultValue } = config;
+
+      return defaultValue;
+    } else {
+      return getConfigDefaults({
+        configDefinition: config as ConfigDefinition,
+      });
+    }
+  });
+}
+
+function defineConfig<T extends ConfigDefinition, Config = InferSchemaType<T>>(
+  configDefinition: T,
+  {
+    envSources = [],
+    envSource = {},
+  }: {
+    envSources?: EnvRecord[];
+    envSource?: EnvRecord;
+  } = {}
+) {
+  const env: EnvRecord = [...envSources, envSource].reduce(
+    (acc, env) => ({ ...acc, ...env }),
+    {}
   );
-}
 
-function getAjv() {
-  const ajv = new Ajv({ removeAdditional: true, coerceTypes: true, useDefaults: true });
+  const schema = buildConfigSchema({ configDefinition });
 
-  addAJVFormats(ajv);
-  addAJVKeywords(ajv);
+  const envConfig = buildEnvConfig({ configDefinition, env });
+  const defaults = getConfigDefaults({ configDefinition });
 
-  ajv.addKeyword({
-    keyword: 'env',
-  });
+  const mergedConfig = mergeDeep(defaults, envConfig);
 
-  ajv.addKeyword({
-    keyword: 'doc',
-  });
+  const parsingResult = schema.safeParse(mergedConfig);
 
-  return ajv;
-}
+  if (!parsingResult.success) {
+    throw createConfigValidationError({ issues: parsingResult.error.issues });
+  }
 
-function figue<S extends JSONSchema>(schema: S, { ajv = getAjv() }: { ajv?: Ajv } = {}) {
-  const envVariables: EnvObject = {};
-  const loadedConfig: object = {};
+  const { data: config } = parsingResult;
 
-  const validate = ajv.compile(schema);
-
-  return {
-    loadEnv(loadedEnv: EnvObject) {
-      Object.assign(envVariables, loadedEnv);
-
-      return this;
-    },
-
-    loadConfig(config: object) {
-      Object.assign(loadedConfig, config);
-
-      return this;
-    },
-
-    getConfig(): DeepRequired<FromSchema<S>> {
-      const configFromEnv = buildEnvObject({ envVariables, envMapper: getEnvMapper({ schema }) });
-
-      const aggregatedConfig = Object.assign({}, loadedConfig, configFromEnv);
-
-      validate(aggregatedConfig);
-
-      return aggregatedConfig as unknown as DeepRequired<FromSchema<S>>;
-    },
-  };
+  return { config: config as Config, env, envConfig };
 }

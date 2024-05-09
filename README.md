@@ -2,7 +2,7 @@
 
 [![ci](https://github.com/CorentinTh/figue/actions/workflows/ci.yml/badge.svg)](https://github.com/CorentinTh/figue/actions/workflows/ci.yml)
 
-> Platform agnostic configuration management library, with environmental variables and validation, like [convict](https://github.com/mozilla/node-convict/tree/master/packages/convict) but simpler, cross env and using json schema.
+> Platform agnostic configuration management library, with environmental variables and validation, like [convict](https://github.com/mozilla/node-convict/tree/master/packages/convict) but simpler, cross env and using [zod schemas](https://github.com/colinhacks/zod).
 
 ## Usage
 
@@ -23,10 +23,10 @@ Import:
 
 ```js
 // ESM
-import { figue } from 'figue';
+import { defineConfig, z } from "figue";
 
 // CommonJS
-const { figue } = require('figue');
+const { defineConfig, z } = require("figue");
 ```
 
 ## API
@@ -34,220 +34,125 @@ const { figue } = require('figue');
 ### Basic example
 
 ```typescript
-import { figue } from 'figue';
+import { defineConfig, z } from "figue";
 
-// Define the schema
-const config = figue({
-  type: 'object',
-  allRequired: true,
-  default: {},
-  properties: {
+const { config } = defineConfig(
+  {
     env: {
-      doc: 'Application current environment',
-      type: 'string',
-      enum: ['production', 'development', 'test'],
-      default: 'development',
-      env: 'NODE_ENV',
+      doc: "Application current environment",
+      default: "development",
+      schema: z.enum(["development", "production", "test"]),
+      env: "NODE_ENV",
     },
     port: {
-      doc: 'Application port to listen',
-      type: 'integer',
+      doc: "Application port to listen",
+      schema: z.coerce.number().int().positive(),
       default: 3000,
-      env: 'PORT',
+      env: "PORT",
     },
     db: {
-      type: 'object',
-      allRequired: true,
-      default: {},
-      properties: {
-        host: {
-          doc: 'Database server host',
-          type: 'string',
-          format: 'hostname',
-          default: 'localhost',
-          env: 'APP_DB_HOST',
-        },
-        username: {
-          doc: 'Database server username',
-          type: 'string',
-          default: 'pg',
-          env: 'APP_DB_USERNAME',
-        },
-        password: {
-          doc: 'Database server password',
-          type: 'string',
-          format: 'password',
-          default: '',
-          env: 'APP_DB_PASSWORD',
-        },
+      host: {
+        doc: "Database server url",
+        schema: z.string().url(),
+        default: "localhost",
+        env: "APP_DB_HOST",
+      },
+      username: {
+        doc: "Database server username",
+        schema: z.string(),
+        default: "pg",
+        env: "APP_DB_USERNAME",
+      },
+      password: {
+        doc: "Database server password",
+        schema: z.string(),
+        default: "",
+        env: "APP_DB_PASSWORD",
       },
     },
   },
-})
-  // Load the environnement variables
-  .loadEnv(process.env) // Or .loadEnv(import.meta.env) for vite
-  // Get the config
-  .getConfig();
+  {
+    envSource: process.env,
+  }
+);
 
 console.log(config);
 // {
-//   env: 'development',
+//   env: "development",
 //   port: 3000,
 //   db: {
-//     host: 'localhost',
-//     username: 'pg',
-//     password: '',
+//     url: "https://localhost",
+//     username: "pg",
+//     password: "",
 //   },
 // }
 ```
 
 ### Load environnement
 
-Use the `loadEnv` method to specify you environnement variables that will be used by the `env` keys
+Use the `envSource` key of the second argument of `defineConfig` to specify the source of the environment variables:
 
 ```typescript
-import { figue } from 'figue';
-
-// Define the schema
-const config = figue({
-  /* schema */
-})
-  .loadEnv(process.env)
-  .getConfig();
+const { config } = defineConfig(
+  {
+    /* ... */
+  },
+  {
+    envSource: process.env,
+  }
+);
 ```
 
 In some case you don't have access to a `process.env` variable, like with `vite`, just simply load what stores your env variables :
 
 ```typescript
-import { figue } from 'figue';
-
-// Define the schema
-const config = figue({
-  /* schema */
-})
-  .loadEnv(import.meta.env)
-  .getConfig();
+const { config } = defineConfig(
+  {
+    /* ... */
+  },
+  {
+    envSource: import.meta.env,
+  }
+);
 ```
 
 You can even specify you custom environment storage as long as it's a simple flat object map, for example:
 
 ```typescript
-import { figue } from 'figue';
-
-// Define the schema
-const config = figue({
-  type: 'object',
-  allRequired: true,
-  default: {},
-  properties: {
-    db: {
-      type: 'object',
-      allRequired: true,
-      default: {},
-      properties: {
-        host: {
-          doc: 'Database server host',
-          type: 'string',
-          format: 'hostname',
-          default: 'localhost',
-          env: 'APP_DB_HOST',
-        },
-        username: {
-          doc: 'Database server username',
-          type: 'string',
-          default: 'pg',
-          env: 'APP_DB_USERNAME',
-        },
-      },
+const { config } = defineConfig(
+  {
+    env: {
+      doc: "Application current environment",
+      default: "development",
+      schema: z.enum(["development", "production", "test"]),
+      env: "NODE_ENV",
     },
+
+    /* ... */
   },
-})
-  .loadConfig({
-    db: {
-      host: 'prod.example.com',
-      username: 'super-root',
+  {
+    envSource: {
+      NODE_ENV: "development",
+      PORT: "3000",
+      APP_DB_HOST: "localhost",
+      APP_DB_USERNAME: "pg",
+      APP_DB_PASSWORD: "",
     },
-  })
-  .getConfig();
+  }
+);
 ```
 
-From a json file :
+If, for some reason, you have multiple sources of environment variables, you can use the `envSources` key of the second argument of `defineConfig` to specify an array of sources:
 
 ```typescript
-import { figue } from 'figue';
-
-import configValues from '../settings.json';
-
-// Define the schema
-const config = figue({
-  /**/
-})
-  .loadConfig(configValues)
-  .getConfig();
-```
-
-If you call `loadEnv` multiple times, the objects passed as argument will be merged and in cas of a conflict, the value of the last env loaded will be used.
-
-### Loading a config
-
-Sometime you may want to load you config value from a custom object (maybe from a config file ?)
-
-```typescript
-import { figue } from 'figue';
-
-// Define the schema
-const config = figue({
-  type: 'object',
-  allRequired: true,
-  default: {},
-  properties: {
-    var: {
-      doc: 'Dummy example',
-      type: 'string',
-      default: 'foo',
-      env: 'my-env-key',
-    },
+const { config } = defineConfig(
+  {
+    /* ... */
   },
-})
-  .loadEnv({
-    'my-env-key': 'bar',
-  })
-  .getConfig();
-```
-
-## Which value is used?
-
-When a config variable has multiple possible value, the order of priority is:
-
-**Env value** (if exists) > **Config value** (if exists) > **Default value**
-
-## Formats available
-
-Figue uses Ajv under the hood with [ajv-formats](https://www.npmjs.com/package/ajv-formats) and [ajv-keywords](https://www.npmjs.com/package/ajv-keywords) extensions in addition to the basic JSON Schema types.
-So please refer to this document to know more about available formats.
-
-## Extending Ajv
-
-You can pass your own Ajv instance...
-
-```typescript
-import { figue } from 'figue';
-
-const ajv = Ajv();
-
-// Define the schema
-const config = figue(schema, { ajv }).loadEnv(process.env).getConfig();
-```
-
-...or extends the default one
-
-```typescript
-import { figue, getAjv } from 'figue';
-
-const ajv = getAjv();
-
-// Define the schema
-const config = figue(schema, { ajv }).loadEnv(process.env).getConfig();
+  {
+    envSource: [import.meta.env, myEnvs],
+  }
+);
 ```
 
 ## What's wrong with convict?
