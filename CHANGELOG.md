@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.0.0](https://github.com/CorentinTh/figue/compare/v1.2.0...v2.0.0) (2024-05-09)
+
+
+### Features
+
+* **figue:** using zod for schemas ([c5c3910](https://github.com/CorentinTh/figue/commit/c5c391093c929c417fff01b6006771280b28e4af))
+
 ## [1.2.0](https://github.com/CorentinTh/figue/compare/v1.1.2...v1.2.0) (2022-05-25)
 
 
