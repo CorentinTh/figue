@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { createConfigValidationError } from './figue.errors';
-import type { ConfigDefinition, ConfigDefinitionElement, EnvRecord, InferSchemaType } from './figue.types';
 import { mapValues, mergeDeep } from './utils';
+import type { ConfigDefinition, ConfigDefinitionElement, EnvRecord, InferSchemaType } from './figue.types';
 
 export { defineConfig };
 
@@ -45,7 +45,7 @@ function buildEnvConfig({ configDefinition, env }: { configDefinition: ConfigDef
 }
 
 function getConfigDefaults({ configDefinition }: { configDefinition: ConfigDefinition }): Record<string, unknown> {
-  return mapValues(configDefinition, (config, key) => {
+  return mapValues(configDefinition, (config) => {
     if (isConfigDefinitionElement(config)) {
       const { default: defaultValue } = config;
 
