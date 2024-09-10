@@ -46,7 +46,7 @@
     "lint": "eslint .",
     "lint:fix": "eslint --fix .",
     "prepack": "unbuild",
-    "release": "standard-version",
+    "release": "bumpp && pnpm publish",
     "test": "pnpm run test:unit",
     "test:unit": "vitest run",
     "test:unit:watch": "vitest watch",
@@ -60,6 +60,7 @@
   },
   "devDependencies": {
     "@antfu/eslint-config": "^3.5.0",
+    "bumpp": "^9.5.2",
     "eslint": "^9.10.0",
     "standard-version": "^9.5.0",
     "typescript": "^5.4.5",
