@@ -4,7 +4,7 @@ import { mapValues, mergeDeep } from './utils';
 describe('utils', () => {
   describe('mapValues', () => {
     test('permits to iterate over an object values', () => {
-      expect(mapValues({ a: 1, b: 2 }, (value) => value + 1)).toEqual({ a: 2, b: 3 });
+      expect(mapValues({ a: 1, b: 2 }, value => value + 1)).toEqual({ a: 2, b: 3 });
     });
   });
 

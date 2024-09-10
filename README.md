@@ -10,23 +10,23 @@ Install package:
 
 ```sh
 # npm
-npm install figue
+npm install figue zod
 
 # yarn
-yarn install figue
+yarn install figue zod
 
 # pnpm
-pnpm install figue
+pnpm install figue zod
 ```
 
 Import:
 
 ```js
 // ESM
-import { defineConfig, z } from "figue";
+import { defineConfig } from 'figue';
 
 // CommonJS
-const { defineConfig, z } = require("figue");
+const { defineConfig } = require('figue');
 ```
 
 ## API
@@ -34,46 +34,47 @@ const { defineConfig, z } = require("figue");
 ### Basic example
 
 ```typescript
-import { defineConfig, z } from "figue";
+import { defineConfig } from 'figue';
+import { z } from 'zod';
 
 const { config } = defineConfig(
   {
     env: {
-      doc: "Application current environment",
-      default: "development",
-      schema: z.enum(["development", "production", "test"]),
-      env: "NODE_ENV",
+      doc: 'Application current environment',
+      default: 'development',
+      schema: z.enum(['development', 'production', 'test']),
+      env: 'NODE_ENV',
     },
     port: {
-      doc: "Application port to listen",
+      doc: 'Application port to listen',
       schema: z.coerce.number().int().positive(),
       default: 3000,
-      env: "PORT",
+      env: 'PORT',
     },
     db: {
       host: {
-        doc: "Database server url",
+        doc: 'Database server url',
         schema: z.string().url(),
-        default: "localhost",
-        env: "APP_DB_HOST",
+        default: 'localhost',
+        env: 'APP_DB_HOST',
       },
       username: {
-        doc: "Database server username",
+        doc: 'Database server username',
         schema: z.string(),
-        default: "pg",
-        env: "APP_DB_USERNAME",
+        default: 'pg',
+        env: 'APP_DB_USERNAME',
       },
       password: {
-        doc: "Database server password",
+        doc: 'Database server password',
         schema: z.string(),
-        default: "",
-        env: "APP_DB_PASSWORD",
+        default: '',
+        env: 'APP_DB_PASSWORD',
       },
     },
   },
   {
     envSource: process.env,
-  }
+  },
 );
 
 console.log(config);
@@ -99,7 +100,7 @@ const { config } = defineConfig(
   },
   {
     envSource: process.env,
-  }
+  },
 );
 ```
 
@@ -112,7 +113,7 @@ const { config } = defineConfig(
   },
   {
     envSource: import.meta.env,
-  }
+  },
 );
 ```
 
@@ -122,23 +123,23 @@ You can even specify you custom environment storage as long as it's a simple fla
 const { config } = defineConfig(
   {
     env: {
-      doc: "Application current environment",
-      default: "development",
-      schema: z.enum(["development", "production", "test"]),
-      env: "NODE_ENV",
+      doc: 'Application current environment',
+      default: 'development',
+      schema: z.enum(['development', 'production', 'test']),
+      env: 'NODE_ENV',
     },
 
     /* ... */
   },
   {
     envSource: {
-      NODE_ENV: "development",
-      PORT: "3000",
-      APP_DB_HOST: "localhost",
-      APP_DB_USERNAME: "pg",
-      APP_DB_PASSWORD: "",
+      NODE_ENV: 'development',
+      PORT: '3000',
+      APP_DB_HOST: 'localhost',
+      APP_DB_USERNAME: 'pg',
+      APP_DB_PASSWORD: '',
     },
-  }
+  },
 );
 ```
 
@@ -151,7 +152,7 @@ const { config } = defineConfig(
   },
   {
     envSource: [import.meta.env, myEnvs],
-  }
+  },
 );
 ```
 

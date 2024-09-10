@@ -17,20 +17,19 @@ jobs:
       - uses: actions/setup-node@v3
         with:
           node-version: 20
-          cache: 'pnpm'
+          cache: pnpm
 
       - name: Install dependencies
         run: pnpm i
-        working-directory: ./
 
-      #   - name: Run linters
-      #     run: pnpm lint
+      - name: Run linters
+        run: pnpm lint
 
       - name: Run unit test
         run: pnpm test
 
-      #   - name: Type check
-      #     run: pnpm typecheck
+      - name: Type check
+        run: pnpm typecheck
 
       - name: Build the app
         run: pnpm build
