@@ -1,7 +1,7 @@
 {
   "name": "figue",
   "type": "module",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "private": false,
   "packageManager": "pnpm@9.0.6",
   "description": "Platform agnostic configuration management library, with environmental variables and validation, like convict but cross-env and zod schemas",
