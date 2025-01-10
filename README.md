@@ -156,6 +156,63 @@ const { config } = defineConfig(
 );
 ```
 
+### Get defaults
+
+You can use the `getDefaults` key of the second argument of `defineConfig` to specify a function that will be called to get some defaults:
+
+```typescript
+const { config } = defineConfig(
+  {
+    env: {
+      doc: 'Application current environment',
+      default: 'development',
+      schema: z.enum(['development', 'production', 'test']),
+      env: 'NODE_ENV',
+    },
+    port: {
+      doc: 'Application port to listen',
+      schema: z.coerce.number().int().positive(),
+      default: 3000,
+      env: 'PORT',
+    },
+  },
+  {
+    envSource: {
+      PORT: 3001,
+    },
+    // The config argument is build from the config definition defaults and the envSources
+    // Typically you will use it to override some defaults based the config
+    getDefaults: ({ config }) => ({
+      port: config.env === 'test' ? 4444 : config.port,
+    }),
+  },
+);
+
+```
+
+You can also use the `defaults` property of the second argument of `defineConfig` to specify some static defaults (for example taken from a json file):
+
+```typescript
+const { config } = defineConfig(
+  {
+    /* ... */
+  },
+  {
+    // Either an array of config partial...
+    defaults: [
+      {
+        port: 4444,
+      },
+    ],
+
+    // ... or a single config partial
+    defaults: {
+      port: 4444,
+    },
+  },
+);
+```
+
 ## What's wrong with convict?
 
 Convict is meant to be used in node based environnement, it needs to have access to global variables that may may not be present in some environnement (like `process`, `global`), and it also imports `fs`.

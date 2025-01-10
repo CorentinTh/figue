@@ -19,3 +19,7 @@ function mergeDeep(...sources: Record<string, unknown>[]): Record<string, unknow
     return acc;
   }, {});
 }
+
+export function castArray<T>(value: T | T[]): T[] {
+  return Array.isArray(value) ? value : [value];
+}

@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest';
-import { mapValues, mergeDeep } from './utils';
+import { castArray, mapValues, mergeDeep } from './utils';
 
 describe('utils', () => {
   describe('mapValues', () => {
@@ -15,6 +15,16 @@ describe('utils', () => {
 
     test('array values are not merged', () => {
       expect(mergeDeep({ a: [1] }, { a: [2] })).toEqual({ a: [2] });
+    });
+  });
+
+  describe('castArray', () => {
+    test('casts a single value to an array', () => {
+      expect(castArray(1)).toEqual([1]);
+    });
+
+    test('returns an array if the value is already an array', () => {
+      expect(castArray([1, 2, 3])).toEqual([1, 2, 3]);
     });
   });
 });

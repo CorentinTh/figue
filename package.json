@@ -47,9 +47,8 @@
     "lint:fix": "eslint --fix .",
     "prepack": "unbuild",
     "release": "bumpp && pnpm publish",
-    "test": "pnpm run test:unit",
-    "test:unit": "vitest run",
-    "test:unit:watch": "vitest watch",
+    "test": "vitest run",
+    "test:watch": "vitest watch",
     "typecheck": "tsc --noEmit"
   },
   "peerDependencies": {
