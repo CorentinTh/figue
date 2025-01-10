@@ -54,5 +54,99 @@ describe('figue tests', () => {
         baz: 42,
       });
     });
+
+    test('getDefaults can be used to define defaults', () => {
+      const { config } = defineConfig({
+        foo: {
+          bar: {
+            schema: z.string().default('baz'),
+          },
+          biz: {
+            schema: z.string(),
+          },
+          bep: {
+            schema: z.string(),
+            env: 'BEP',
+          },
+        },
+      }, {
+        getDefaults: () => ({
+          foo: {
+            biz: 'bul',
+          },
+        }),
+        envSource: {
+          BEP: '42',
+        },
+      });
+
+      expect(config).toEqual({
+        foo: {
+          bar: 'baz',
+          biz: 'bul',
+          bep: '42',
+        },
+      });
+    });
+
+    test('getDefaults args can be used to define defaults', () => {
+      let isGetDefaultsCalled = false;
+
+      defineConfig({
+        foo: {
+          bar: {
+            schema: z.string(),
+            default: 'baz',
+          },
+          biz: {
+            schema: z.string(),
+            default: 'bul',
+          },
+          bep: {
+            schema: z.string(),
+            env: 'BEP',
+          },
+        },
+      }, {
+        getDefaults: (args) => {
+          isGetDefaultsCalled = true;
+
+          expect(args).to.eql({
+            config: {
+              foo: {
+                bar: 'baz',
+                biz: 'bul',
+                bep: '42',
+              },
+            },
+            configDefaults: {
+              foo: {
+                bar: 'baz',
+                biz: 'bul',
+                bep: undefined,
+              },
+            },
+            envConfig: {
+              foo: {
+                bar: undefined,
+                biz: undefined,
+                bep: '42',
+              },
+            },
+          });
+
+          return {
+            foo: {
+              biz: 'bul',
+            },
+          };
+        },
+        envSource: {
+          BEP: '42',
+        },
+      });
+
+      expect(isGetDefaultsCalled).toBe(true);
+    });
   });
 });
