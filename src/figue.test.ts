@@ -1,3 +1,4 @@
+import * as v from 'valibot';
 import { describe, expect, test } from 'vitest';
 import { z } from 'zod';
 import { defineConfig } from './figue';
@@ -147,6 +148,28 @@ describe('figue tests', () => {
       });
 
       expect(isGetDefaultsCalled).toBe(true);
+    });
+  });
+
+  describe('any validation libraries can be used', () => {
+    test('you can merge some schema from zod and some from valibot', () => {
+      const { config } = defineConfig({
+        foo: {
+          schema: z.string(),
+          default: 'foo',
+          doc: 'The foo config',
+        },
+        bar: {
+          schema: v.string(),
+          default: 'bar',
+          doc: 'The bar config',
+        },
+      });
+
+      expect(config).toEqual({
+        foo: 'foo',
+        bar: 'bar',
+      });
     });
   });
 });

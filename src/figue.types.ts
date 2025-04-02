@@ -1,10 +1,10 @@
-import type { ZodType } from 'zod';
+import type { StandardSchemaV1 } from '@standard-schema/spec';
 
-export type ConfigDefinitionElement<T = unknown> = {
-  schema: ZodType<T>;
+export type ConfigDefinitionElement<T extends StandardSchemaV1 = StandardSchemaV1> = {
+  schema: T;
   env?: string;
   doc?: string;
-  default?: T;
+  default?: StandardSchemaV1.InferOutput<T>;
 };
 
 export type ConfigDefinition = {
@@ -17,7 +17,7 @@ export type ConfigDefinitionObject = {
 };
 
 export type InferSchemaType<T extends ConfigDefinition> = {
-  [P in keyof T]: T[P] extends ConfigDefinitionElement ? T[P]['schema']['_output'] : T[P] extends ConfigDefinition ? InferSchemaType<T[P]> : never;
+  [P in keyof T]: T[P] extends ConfigDefinitionElement ? StandardSchemaV1.InferOutput<T[P]['schema']> : T[P] extends ConfigDefinition ? InferSchemaType<T[P]> : never;
 };
 
 export type EnvRecord = Record<string, unknown>;

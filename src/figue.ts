@@ -1,34 +1,65 @@
-import { z } from 'zod';
+import type { StandardSchemaV1 } from '@standard-schema/spec';
 import { createConfigValidationError } from './figue.errors';
 import { castArray, mapValues, mergeDeep } from './utils';
 import type { ConfigDefinition, ConfigDefinitionElement, EnvRecord, InferSchemaType } from './figue.types';
-import type { DeepPartial, Falsy } from './types';
+import type { Falsy } from './types';
 
-export { buildConfigSchema, defineConfig };
+export { defineConfig };
 
-function buildConfigSchema({ configDefinition }: { configDefinition: ConfigDefinition }) {
-  const schema: any = mapValues(configDefinition, (config) => {
-    if (isConfigDefinitionElement(config)) {
-      return config.schema;
-    } else {
-      return buildConfigSchema({
-        configDefinition: config as ConfigDefinition,
-      });
+function validateConfig({ configDefinition, configValues }: { configDefinition: ConfigDefinition; configValues: Record<string, unknown> }): { config: unknown; issues: ReadonlyArray<StandardSchemaV1.Issue> } {
+  const issues: StandardSchemaV1.Issue[] = [];
+
+  function validateRecursive({ definition, values, path = [] }: { definition: ConfigDefinition; values: Record<string, unknown>; path?: string[] }): unknown {
+    const result: Record<string, unknown> = {};
+
+    for (const key in definition) {
+      const currentPath = [...path, key];
+      const value = values[key];
+      const defElement = definition[key];
+
+      if (isConfigDefinitionElement(defElement)) {
+        const validation = defElement.schema['~standard'].validate(value);
+
+        if (validation instanceof Promise) {
+          throw new TypeError('Schema validation must be synchronous');
+        }
+
+        if (validation.issues) {
+          issues.push(...validation.issues.map(issue => ({ ...issue, path: currentPath })));
+        } else {
+          result[key] = validation.value;
+        }
+      } else {
+        if (typeof value === 'object' && value !== null) {
+          result[key] = validateRecursive(
+            { definition: defElement as ConfigDefinition, values: value as Record<string, unknown>, path: currentPath },
+          );
+        } else {
+          issues.push({ message: 'Expected object', path: currentPath });
+        }
+      }
     }
-  });
 
-  return z.object(schema);
+    return result;
+  }
+
+  const config = validateRecursive({ definition: configDefinition, values: configValues });
+
+  return { issues, config };
 }
 
 function isConfigDefinitionElement(config: unknown): config is ConfigDefinitionElement {
-  try {
-    return config instanceof Object && 'schema' in config && config.schema instanceof z.ZodType;
-  } catch (_ignored) {
-    return false;
-  }
+  return (
+    typeof config === 'object'
+    && config !== null
+    && 'schema' in config
+    && typeof config.schema === 'object'
+    && config.schema !== null
+    && '~standard' in config.schema
+  );
 }
 
-function buildEnvConfig<Config extends Record<string, unknown>>({ configDefinition, env }: { configDefinition: ConfigDefinition; env: EnvRecord }): DeepPartial<Config> {
+function buildEnvConfig({ configDefinition, env }: { configDefinition: ConfigDefinition; env: EnvRecord }): Record<string, unknown> {
   return mapValues(configDefinition, (config) => {
     if (isConfigDefinitionElement(config)) {
       const { env: envKey } = config;
@@ -40,14 +71,12 @@ function buildEnvConfig<Config extends Record<string, unknown>>({ configDefiniti
       const value = env[envKey as string];
       return value;
     } else {
-      return buildEnvConfig<Config>({ configDefinition: config, env });
+      return buildEnvConfig({ configDefinition: config, env });
     }
-  }) as DeepPartial<Config>;
+  });
 }
 
-function getConfigDefaults<Config extends Record<string, unknown>>(
-  { configDefinition }: { configDefinition: ConfigDefinition },
-): Config {
+function getConfigDefaults({ configDefinition }: { configDefinition: ConfigDefinition }): Record<string, unknown> {
   return mapValues(configDefinition, (config) => {
     if (isConfigDefinitionElement(config)) {
       const { default: defaultValue } = config;
@@ -58,7 +87,7 @@ function getConfigDefaults<Config extends Record<string, unknown>>(
         configDefinition: config,
       });
     }
-  }) as Config;
+  });
 }
 
 const isNotFalsy = <T>(value: T | Falsy): value is T => Boolean(value);
@@ -111,13 +140,11 @@ function defineConfig<T extends ConfigDefinition, Config extends Record<string, 
 ) {
   const env: EnvRecord = [...envSources, envSource].reduce((acc, env) => ({ ...acc, ...env }), {});
 
-  const schema = buildConfigSchema({ configDefinition });
-
   // The default config coming from zod schema defaults
-  const configDefaults = getConfigDefaults<Config>({ configDefinition });
+  const configDefaults = getConfigDefaults({ configDefinition });
 
   // The config coming from env variables
-  const envConfig = buildEnvConfig<Config>({ configDefinition, env });
+  const envConfig = buildEnvConfig({ configDefinition, env });
 
   // The config coming from defaults and getDefaults arguments
   const defaultsConfig = buildDefaultsConfig({ rawDefaults, envConfig, configDefaults, getDefaults });
@@ -126,13 +153,11 @@ function defineConfig<T extends ConfigDefinition, Config extends Record<string, 
     ? mergeDeep(configDefaults, envConfig, defaultsConfig)
     : mergeDeep(configDefaults, defaultsConfig, envConfig);
 
-  const parsingResult = schema.safeParse(mergedConfig);
+  const { issues, config } = validateConfig({ configDefinition, configValues: mergedConfig });
 
-  if (!parsingResult.success) {
-    throw createConfigValidationError({ issues: parsingResult.error.issues });
+  if (issues.length > 0) {
+    throw createConfigValidationError({ issues });
   }
 
-  const { data: config } = parsingResult;
-
-  return { config: config as Config, env, envConfig, schema };
+  return { config: config as Config, env, envConfig };
 }

@@ -6,6 +6,7 @@ const config: BuildConfig = {
   rollup: {
     emitCJS: true,
   },
+  clean: true,
 };
 
 export default config;
