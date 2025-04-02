@@ -63,30 +63,30 @@ function getConfigDefaults<Config extends Record<string, unknown>>(
 
 const isNotFalsy = <T>(value: T | Falsy): value is T => Boolean(value);
 
-function buildDefaultsConfig<Config extends Record<string, unknown>>(
+function buildDefaultsConfig(
   {
     rawDefaults,
     getDefaults,
     envConfig,
     configDefaults,
   }: {
-    rawDefaults: (DeepPartial<Config> | Falsy)[] | DeepPartial<Config>;
-    envConfig: DeepPartial<Config>;
-    configDefaults: Config;
+    rawDefaults: (Record<string, unknown> | Falsy)[] | Record<string, unknown>;
+    envConfig: Record<string, unknown>;
+    configDefaults: Record<string, unknown>;
     getDefaults?: ((args: {
-      configDefaults: Config;
-      envConfig: DeepPartial<Config>;
-      config: Config;
-    }) => (DeepPartial<Config> | Falsy)[] | DeepPartial<Config>);
+      configDefaults: Record<string, unknown>;
+      envConfig: Record<string, unknown>;
+      config: Record<string, unknown>;
+    }) => (Record<string, unknown> | Falsy)[] | Record<string, unknown>);
   },
-): DeepPartial<Config> {
-  const config = mergeDeep(configDefaults, envConfig) as Config;
+): Record<string, unknown> {
+  const config = mergeDeep(configDefaults, envConfig);
   const defaults = castArray(rawDefaults).filter(isNotFalsy);
 
   const gotDefaultsRaw = getDefaults?.({ configDefaults, envConfig, config });
   const gotDefaults = castArray(gotDefaultsRaw).filter(isNotFalsy);
 
-  return mergeDeep(...defaults, ...gotDefaults) as DeepPartial<Config>;
+  return mergeDeep(...defaults, ...gotDefaults);
 }
 
 function defineConfig<T extends ConfigDefinition, Config extends Record<string, unknown> = InferSchemaType<T>>(
@@ -100,12 +100,12 @@ function defineConfig<T extends ConfigDefinition, Config extends Record<string, 
   }: {
     envSources?: EnvRecord[];
     envSource?: EnvRecord;
-    defaults?: (DeepPartial<Config> | Falsy)[] | DeepPartial<Config>;
+    defaults?: (Record<string, unknown> | Falsy)[] | Record<string, unknown>;
     getDefaults?: ((args: {
-      configDefaults: Config;
-      envConfig: DeepPartial<Config>;
-      config: Config;
-    }) => (DeepPartial<Config> | Falsy)[] | DeepPartial<Config>);
+      configDefaults: Record<string, unknown>;
+      envConfig: Record<string, unknown>;
+      config: Record<string, unknown>;
+    }) => (Record<string, unknown> | Falsy)[] | Record<string, unknown>);
     priority?: 'env' | 'defaults';
   } = {},
 ) {
