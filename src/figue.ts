@@ -134,5 +134,5 @@ function defineConfig<T extends ConfigDefinition, Config extends Record<string, 
 
   const { data: config } = parsingResult;
 
-  return { config: config as Config, env, envConfig };
+  return { config: config as Config, env, envConfig, schema };
 }
