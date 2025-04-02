@@ -1,22 +1,48 @@
-# Figue
+<p align="center">
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="./.github/fig.png">
+  <source media="(prefers-color-scheme: light)" srcset="./.github/fig-outlined.png">
+  <img src="./.github/fig.png" alt="Figue" width="200" />
+</picture>
+</p>
 
-[![ci](https://github.com/CorentinTh/figue/actions/workflows/ci.yml/badge.svg)](https://github.com/CorentinTh/figue/actions/workflows/ci.yml)
+<h1 align="center">
+  Figue - Application configuration management
+</h1>
+<p align="center">
+  The modern way to handle and validate your application configuration with any standard-schema-compliant validation library.
+</p>
 
-> Platform agnostic configuration management library, with environmental variables and validation, like [convict](https://github.com/mozilla/node-convict/tree/master/packages/convict) but simpler, cross env and using [zod schemas](https://github.com/colinhacks/zod).
+
+## Introduction
+
+Figue is a modern configuration management library for Node.js. It is designed to be easy to use, flexible, it can used in any environment, and can be used with any standard-schema-compliant validation library, like [zod](https://github.com/colinhacks/zod) or [valibot](https://github.com/valibot/valibot).
+
+Think of it as a modern version of [convict](https://github.com/mozilla/node-convict/tree/master/packages/convict) but simpler, cross env and using battle tested validation libraries.
+
+## Features
+
+- Environment variables support
+- Validation with any standard-schema-compliant validation library
+- Flat object support
+- Multiple sources of configuration
+- Type-safe configuration
+- Composable configuration
 
 ## Usage
 
 Install package:
 
 ```sh
+# pnpm
+pnpm install figue
+
 # npm
-npm install figue zod
+npm install figue
 
 # yarn
-yarn install figue zod
+yarn install figue
 
-# pnpm
-pnpm install figue zod
 ```
 
 Import:
@@ -33,40 +59,42 @@ const { defineConfig } = require('figue');
 
 ### Basic example
 
+Use the `defineConfig` function to define your configuration, here with [valibot](https://github.com/valibot/valibot):
+
 ```typescript
 import { defineConfig } from 'figue';
-import { z } from 'zod';
+import * as v from 'valibot';
 
 const { config } = defineConfig(
   {
     env: {
       doc: 'Application current environment',
       default: 'development',
-      schema: z.enum(['development', 'production', 'test']),
+      schema: v.picklist(['development', 'production', 'test']),
       env: 'NODE_ENV',
     },
     port: {
       doc: 'Application port to listen',
-      schema: z.coerce.number().int().positive(),
+      schema: v.pipe(v.union([v.number(), v.string()]), v.transform(Number)),
       default: 3000,
       env: 'PORT',
     },
     db: {
       host: {
         doc: 'Database server url',
-        schema: z.string().url(),
-        default: 'localhost',
+        schema: v.pipe(v.string(), v.url()),
+        default: 'http://localhost:5432',
         env: 'APP_DB_HOST',
       },
       username: {
         doc: 'Database server username',
-        schema: z.string(),
+        schema: v.string(),
         default: 'pg',
         env: 'APP_DB_USERNAME',
       },
       password: {
         doc: 'Database server password',
-        schema: z.string(),
+        schema: v.string(),
         default: '',
         env: 'APP_DB_PASSWORD',
       },
@@ -88,6 +116,10 @@ console.log(config);
 //   },
 // }
 ```
+
+You can see more examples in the [demo](./demo) folder.
+- Figue with zod: [demo/figue-zod.ts](./demo/figue-zod.ts)
+- Figue with valibot: [demo/figue-valibot.ts](./demo/figue-valibot.ts)
 
 ### Load environnement
 
@@ -229,7 +261,10 @@ Convict is meant to be used in node based environnement, it needs to have access
 
 ## Credits
 
-Coded with ❤️ by [Corentin Thomasset](//corentin-thomasset.fr).
+This project is crafted with ❤️ by [Corentin Thomasset](https://corentin.tech).
+If you find this project helpful, please consider [supporting my work](https://buymeacoffee.com/cthmsst).
+
+Fig icons created by <a href="https://www.flaticon.com/free-icons/fig" title="fig icons">Freepik - Flaticon</a>
 
 ## License
 

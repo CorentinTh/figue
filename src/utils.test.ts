@@ -23,7 +23,7 @@ describe('utils', () => {
       expect(castArray(1)).toEqual([1]);
     });
 
-    test('returns an array if the value is already an array', () => {
+    test('returns the array if the value is already an array', () => {
       expect(castArray([1, 2, 3])).toEqual([1, 2, 3]);
     });
   });

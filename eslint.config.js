@@ -8,7 +8,6 @@ export default antfu({
 
   rules: {
     // To allow export on top of files
-    'ts/no-use-before-define': ['error', { allowNamedExports: true, functions: false }],
     'curly': ['error', 'all'],
     'vitest/consistent-test-it': ['error', { fn: 'test' }],
     'ts/consistent-type-definitions': ['error', 'type'],
@@ -20,5 +19,5 @@ export default antfu({
     }],
   },
 
-  ignores: ['README.md'],
+  ignores: ['README.md', 'demo/*'],
 });

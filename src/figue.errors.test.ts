@@ -1,5 +1,6 @@
+import type { ConfigDefinitionElement } from './figue.types';
 import { describe, expect, test } from 'vitest';
-import { createFigueError, isFigueError } from './figue.errors';
+import { createConfigValidationError, createFigueError, isFigueError } from './figue.errors';
 
 describe('figue errors', () => {
   describe('createFigueError', () => {
@@ -22,6 +23,16 @@ describe('figue errors', () => {
       expect(isFigueError(null)).toBe(false);
       expect(isFigueError(undefined)).toBe(false);
       expect(isFigueError('test')).toBe(false);
+    });
+  });
+
+  describe('createConfigValidationError', () => {
+    test('creates a config validation error for the user given the issues', () => {
+      const error = createConfigValidationError({ issues: [
+        { path: ['a', 'b'], message: 'message', definition: { env: 'FOO' } as ConfigDefinitionElement },
+      ] });
+
+      expect(error.message).toBe('a.b (FOO): message');
     });
   });
 });

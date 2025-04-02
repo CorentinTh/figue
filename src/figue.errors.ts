@@ -1,19 +1,17 @@
-import type { z } from 'zod';
+import type { ConfigIssue } from './figue.types';
 
-export { createConfigValidationError, createFigueError, isFigueError };
-
-function createFigueError({ message, code }: { message: string; code: string }) {
+export function createFigueError({ message, code }: { message: string; code: string }) {
   const error = Object.assign(new Error(message), { code, isFigueError: true });
 
   return error;
 }
 
-function isFigueError(error: unknown): error is Error & { isFigueError: true; code: string } {
+export function isFigueError(error: unknown): error is Error & { isFigueError: true; code: string } {
   return error instanceof Error && (error as Error & { isFigueError?: boolean }).isFigueError === true;
 }
 
-function createConfigValidationError({ issues }: { issues: z.ZodIssue[] }) {
-  const message = issues.map(({ path, message }) => `${path.join('.')}: ${message}`).join('\n');
+export function createConfigValidationError({ issues }: { issues: ReadonlyArray<ConfigIssue> }) {
+  const message = issues.map(({ path, message, definition }) => `${path?.join('.')}${definition?.env ? ` (${definition.env})` : ''}: ${message}`).join('\n');
 
   return createFigueError({ message, code: 'CONFIG_VALIDATION_ERROR' });
 }
