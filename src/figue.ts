@@ -4,7 +4,7 @@ import { castArray, mapValues, mergeDeep } from './utils';
 import type { ConfigDefinition, ConfigDefinitionElement, EnvRecord, InferSchemaType } from './figue.types';
 import type { DeepPartial, Falsy } from './types';
 
-export { defineConfig };
+export { buildConfigSchema, defineConfig };
 
 function buildConfigSchema({ configDefinition }: { configDefinition: ConfigDefinition }) {
   const schema: any = mapValues(configDefinition, (config) => {
