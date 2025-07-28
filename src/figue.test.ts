@@ -1,3 +1,4 @@
+import * as v from 'valibot';
 import { describe, expect, test } from 'vitest';
 import { z } from 'zod';
 import { defineConfig } from './figue';
@@ -32,6 +33,29 @@ describe('figue tests', () => {
         },
         baz: 42,
       });
+    });
+
+    test('when a provided config is not valid, an error is thrown', () => {
+      expect(() => defineConfig({
+        foo: {
+          schema: z.string(),
+        },
+        bar: {
+          schema: z.url(),
+          env: 'BAR',
+        },
+      }, {
+        envSource: {
+          BAR: 'bar',
+        },
+      })).toThrow('foo: Invalid input: expected string, received undefined\nbar (BAR): Invalid URL');
+
+      expect(() => defineConfig({
+        foo: {
+          schema: z.string(),
+          env: 'FOO',
+        },
+      })).toThrow('foo (FOO): Invalid input: expected string, received undefined');
     });
 
     test('default value can be defined with zod default or using the default key', () => {
@@ -147,6 +171,28 @@ describe('figue tests', () => {
       });
 
       expect(isGetDefaultsCalled).toBe(true);
+    });
+  });
+
+  describe('any validation libraries can be used', () => {
+    test('you can merge some schema from zod and some from valibot', () => {
+      const { config } = defineConfig({
+        foo: {
+          schema: z.string(),
+          default: 'foo',
+          doc: 'The foo config',
+        },
+        bar: {
+          schema: v.string(),
+          default: 'bar',
+          doc: 'The bar config',
+        },
+      });
+
+      expect(config).toEqual({
+        foo: 'foo',
+        bar: 'bar',
+      });
     });
   });
 });

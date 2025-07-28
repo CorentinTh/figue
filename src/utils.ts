@@ -1,10 +1,8 @@
-export { mapValues, mergeDeep };
-
-function mapValues<T, U>(obj: Record<string, T>, fn: (value: T, key: string) => U): Record<string, U> {
+export function mapValues<T, U>(obj: Record<string, T>, fn: (value: T, key: string) => U): Record<string, U> {
   return Object.fromEntries(Object.entries(obj).map(([key, value]) => [key, fn(value, key)]));
 }
 
-function mergeDeep(...sources: Record<string, unknown>[]): Record<string, unknown> {
+export function mergeDeep(...sources: Record<string, unknown>[]): Record<string, unknown> {
   return sources.reduce((acc, source) => {
     for (const key in source) {
       const value = source[key];
