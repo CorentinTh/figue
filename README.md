@@ -16,7 +16,7 @@
 
 ## Introduction
 
-Figue is a modern configuration management library for Node.js. It is designed to be easy to use, flexible, it can used in any environment, and can be used with any standard-schema-compliant validation library, like [zod](https://github.com/colinhacks/zod) or [valibot](https://github.com/valibot/valibot).
+Figue is a modern configuration management library for Node.js. It is designed to be easy to use, flexible, it can used in any environment, and can be used with any standard-schema-compliant validation library, like [zod](https://github.com/colinhacks/zod) or [valibot](https://github.com/fabian-hiller/valibot).
 
 Think of it as a modern version of [convict](https://github.com/mozilla/node-convict/tree/master/packages/convict) but simpler, cross env and using battle tested validation libraries.
 
@@ -59,7 +59,7 @@ const { defineConfig } = require('figue');
 
 ### Basic example
 
-Use the `defineConfig` function to define your configuration, here with [valibot](https://github.com/valibot/valibot):
+Use the `defineConfig` function to define your configuration, here with [valibot](https://github.com/fabian-hiller/valibot):
 
 ```typescript
 import { defineConfig } from 'figue';
