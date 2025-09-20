@@ -7,7 +7,7 @@ export function mergeDeep(...sources: Record<string, unknown>[]): Record<string,
     for (const key in source) {
       const value = source[key];
 
-      if (value && value instanceof Object && !Array.isArray(value)) {
+      if (value !== undefined && value instanceof Object && !Array.isArray(value)) {
         acc[key] = mergeDeep(acc[key] as Record<string, unknown>, value as Record<string, unknown>);
       } else if (value !== undefined) {
         Object.assign(acc, { [key]: value });

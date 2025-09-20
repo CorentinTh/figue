@@ -6,6 +6,10 @@ export default antfu({
     semi: true,
   },
 
+  typescript: {
+    tsconfigPath: './tsconfig.json',
+  },
+
   rules: {
     // To allow export on top of files
     'curly': ['error', 'all'],
