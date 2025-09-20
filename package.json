@@ -47,7 +47,7 @@
     "lint": "eslint .",
     "lint:fix": "eslint --fix .",
     "prepack": "pnpm build",
-    "release": "bumpp && pnpm publish",
+    "release": "bumpp --commit --tag --push",
     "test": "vitest run",
     "test:watch": "vitest watch",
     "typecheck": "tsc --noEmit"
@@ -65,5 +65,10 @@
     "valibot": "^1.1.0",
     "vitest": "^3.2.4",
     "zod": "^4.0.10"
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true,
+    "registry": "https://registry.npmjs.org"
   }
 }
