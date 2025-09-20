@@ -28,6 +28,7 @@ Think of it as a modern version of [convict](https://github.com/mozilla/node-con
 - Multiple sources of configuration
 - Type-safe configuration
 - Composable configuration
+- No runtime dependencies
 
 ## Usage
 
