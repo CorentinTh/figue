@@ -189,6 +189,54 @@ const { config } = defineConfig(
 );
 ```
 
+### Environment variable fallback
+
+You can specify multiple environment variable names for a single configuration field by providing an array of strings. Figue will use the first environment variable that is found in your environment sources.
+
+This feature is particularly useful when:
+- Supporting multiple deployment environments with different environment variable naming conventions
+- Migrating from legacy environment variable names while maintaining backward compatibility
+- Providing fallback options for missing environment variables
+
+```typescript
+const { config } = defineConfig(
+  {
+    port: {
+      doc: 'Application port to listen',
+      schema: z.coerce.number(),
+      default: 3000,
+      // Will use PORT if available, otherwise APP_PORT, otherwise SERVER_PORT
+      env: ['PORT', 'APP_PORT', 'SERVER_PORT'],
+    },
+    database: {
+      host: {
+        doc: 'Database host',
+        schema: z.string(),
+        default: 'localhost',
+        // Useful for supporting legacy environment variable names
+        env: ['DATABASE_HOST', 'DB_HOST', 'LEGACY_DB_URL'],
+      },
+    },
+    workerId: {
+      doc: 'Worker identifier',
+      schema: z.string().optional(),
+      // Or using some plateform specific environment variable
+      env: ['WORKER_ID', 'HEROKU_DYNO_ID', 'RENDER_INSTANCE_ID'],
+    },
+  },
+  {
+    envSource: process.env,
+  },
+);
+```
+
+
+
+Some caveats:
+- If none of the specified environment variables are found, Figue will fall back to the default as expected when no `env` key is present.
+- If a variable is found but its value is nullish or falsy (like an empty string, or undefined), Figue will still consider it as set and use that value. If you want to ignore such values, you should handle that in your schema validation.
+- Ensure that the order of environment variables in the array reflects their priority, as Figue will use the first one it finds.
+
 ### Get defaults
 
 You can use the `getDefaults` key of the second argument of `defineConfig` to specify a function that will be called to get some defaults:

@@ -174,6 +174,63 @@ describe('figue tests', () => {
     });
   });
 
+  describe('the env option can be an array of env variables', () => {
+    test('the first env variable found is used', () => {
+      const { config } = defineConfig({
+        value: {
+          schema: z.any(),
+          env: ['NOT_EXISTING', 'BAR', 'ALSO_NOT_EXISTING', 'FOO'],
+          default: 'default',
+        },
+      }, {
+        envSource: {
+          FOO: 'foo',
+          BAR: 'bar',
+        },
+      });
+
+      expect(config).toEqual({
+        value: 'bar',
+      });
+    });
+
+    test('if an env variable exists but is empty, it is used', () => {
+      const { config } = defineConfig({
+        value: {
+          schema: z.any(),
+          env: ['NOT_EXISTING', 'BAR', 'ALSO_NOT_EXISTING', 'FOO'],
+        },
+      }, {
+        envSource: {
+          FOO: 'foo',
+          BAR: undefined,
+        },
+      });
+
+      expect(config).toEqual({
+        value: undefined,
+      });
+    });
+
+    test('if an env variable exists but is falsy, it is used', () => {
+      const { config } = defineConfig({
+        value: {
+          schema: z.any(),
+          env: ['NOT_EXISTING', 'BAR', 'ALSO_NOT_EXISTING', 'FOO'],
+        },
+      }, {
+        envSource: {
+          FOO: 'foo',
+          BAR: false,
+        },
+      });
+
+      expect(config).toEqual({
+        value: false,
+      });
+    });
+  });
+
   describe('any validation libraries can be used', () => {
     test('you can merge some schema from zod and some from valibot', () => {
       const { config } = defineConfig({
