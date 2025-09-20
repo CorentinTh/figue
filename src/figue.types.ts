@@ -3,7 +3,7 @@ import type { Expand } from './types';
 
 export type ConfigDefinitionElement<T extends StandardSchemaV1 = StandardSchemaV1> = {
   schema: T;
-  env?: string;
+  env?: string | string[];
   doc?: string;
   default?: StandardSchemaV1.InferOutput<T>;
 };

@@ -105,8 +105,16 @@ function buildEnvConfig({ configDefinition, env }: { configDefinition: ConfigDef
         return undefined;
       }
 
-      const value = env[envKey as string];
-      return value;
+      const envKeys = castArray(envKey);
+
+      // Find the first environment variable that is set
+      const key = envKeys.find(key => key in env);
+
+      if (key === undefined) {
+        return undefined;
+      }
+
+      return env[key];
     } else {
       return buildEnvConfig({ configDefinition: config, env });
     }
