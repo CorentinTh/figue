@@ -49,11 +49,7 @@ yarn install figue
 Import:
 
 ```js
-// ESM
 import { defineConfig } from 'figue';
-
-// CommonJS
-const { defineConfig } = require('figue');
 ```
 
 ## API
