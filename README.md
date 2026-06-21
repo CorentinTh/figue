@@ -290,6 +290,59 @@ const { config } = defineConfig(
 );
 ```
 
+### Cross-field validation
+
+Sometimes a single schema isn't enough — a field's validity may depend on another field's value. For these cases, add a `validate` function to any field. It runs after every per-field schema check has passed, and receives the fully-validated `config`:
+
+```typescript
+import { defineConfig, validator } from 'figue';
+import * as v from 'valibot';
+
+type Config = {
+  adapters: { id: string; url: string }[];
+  defaultAdapterId: string;
+};
+
+const { config } = defineConfig({
+  adapters: {
+    doc: 'Available resource adapters',
+    schema: v.array(v.object({ id: v.string(), url: v.string() })),
+    default: [],
+    env: 'ADAPTERS',
+  },
+  defaultAdapterId: {
+    doc: 'Default adapter id (must reference one of `adapters[].id`)',
+    schema: v.string(),
+    default: '',
+    env: 'DEFAULT_ADAPTER_ID',
+    validate: validator<Config>(({ value, config }) => {
+      if (!config.adapters.some(a => a.id === value)) {
+        return `must match one of adapters[].id (got "${value}")`;
+      }
+    }),
+  },
+});
+```
+
+Co-locating the rule with the field it belongs to keeps things readable, even when your config definition is split across modules.
+
+**Return contract** — the function can either throw or return:
+
+| Return value | Meaning |
+| --- | --- |
+| `void` / `undefined` / `true` | passes |
+| `false` | generic `"Validation failed at <path>"` issue |
+| `string` | used as the issue message |
+| `{ message, path? }` | a fully-formed issue (path defaults to the current field) |
+| `ValidateIssue[]` | multiple issues from a single rule |
+| `throw new Error(msg)` | caught; `error.message` becomes the issue |
+
+All issues from cross-field rules are aggregated into a single `ConfigValidationError`, just like schema errors.
+
+**Typing the `config` argument** — by default `config` is loosely typed (`any`) so you don't have to declare anything. When you want full IntelliSense on the cross-referenced fields, wrap your function with the `validator<Config>(...)` helper as shown above. It's a no-op at runtime, purely a type hint.
+
+**Note** — `validate` only runs once every field's schema has validated successfully, so you can trust that `config` is fully typed and coerced.
+
 ## What's wrong with convict?
 
 Convict is meant to be used in node based environnement, it needs to have access to global variables that may may not be present in some environnement (like `process`, `global`), and it also imports `fs`.

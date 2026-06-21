@@ -1,6 +1,15 @@
 import type { StandardSchemaV1 } from '@standard-schema/spec';
 import type { Expand } from './types';
 
+export type ValidateIssue = {
+  message: string;
+  path?: string[];
+};
+
+export type ValidateResult = void | undefined | boolean | string | ValidateIssue | ValidateIssue[];
+
+export type ValidateFn<Value = any, Config = any> = (args: { value: Value; config: Config }) => ValidateResult;
+
 export type ConfigDefinitionElement<
   T extends StandardSchemaV1 = StandardSchemaV1,
   Extra extends Record<string, unknown> = Record<string, unknown>,
@@ -9,6 +18,7 @@ export type ConfigDefinitionElement<
   env?: string | string[];
   doc?: string;
   default?: StandardSchemaV1.InferOutput<T>;
+  validate?: ValidateFn<StandardSchemaV1.InferOutput<T>>;
 } & Extra;
 
 export type ConfigDefinition<Extra extends Record<string, unknown> = Record<string, unknown>> = {

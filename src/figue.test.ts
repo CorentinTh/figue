@@ -1,7 +1,7 @@
 import * as v from 'valibot';
-import { describe, expect, test } from 'vitest';
+import { describe, expect, test, vi } from 'vitest';
 import { z } from 'zod';
-import { defineConfig } from './figue';
+import { defineConfig, validator } from './figue';
 
 describe('figue tests', () => {
   describe('defineConfig', () => {
@@ -250,6 +250,163 @@ describe('figue tests', () => {
         foo: 'foo',
         bar: 'bar',
       });
+    });
+  });
+
+  describe('per-field validate (cross-field rules)', () => {
+    test('a string return becomes the issue message', () => {
+      type Cfg = { adapters: { id: string; url: string }[]; defaultAdapterId: string };
+
+      expect(() => defineConfig({
+        adapters: {
+          schema: v.array(v.object({ id: v.string(), url: v.string() })),
+          default: [{ id: 'a', url: 'https://a' }],
+        },
+        defaultAdapterId: {
+          schema: v.string(),
+          default: 'missing',
+          env: 'DEFAULT_ADAPTER_ID',
+          validate: validator<Cfg>(({ value, config }) => {
+            if (!config.adapters.some(a => a.id === value)) {
+              return `must match one of adapters[].id (got "${value}")`;
+            }
+          }),
+        },
+      })).toThrow('defaultAdapterId (DEFAULT_ADAPTER_ID): must match one of adapters[].id (got "missing")');
+    });
+
+    test('a thrown error is caught and surfaced as an issue', () => {
+      expect(() => defineConfig({
+        port: {
+          schema: z.number(),
+          default: 0,
+          validate: ({ value }) => {
+            if (value === 0) {
+              throw new Error('port must not be zero');
+            }
+          },
+        },
+      })).toThrow('port: port must not be zero');
+    });
+
+    test('an object return can override the path', () => {
+      expect(() => defineConfig({
+        a: {
+          schema: z.string(),
+          default: 'x',
+          validate: () => ({ message: 'cross-field error', path: ['somewhere', 'else'] }),
+        },
+      })).toThrow('somewhere.else: cross-field error');
+    });
+
+    test('returning void/true passes', () => {
+      const { config } = defineConfig({
+        a: {
+          schema: z.string(),
+          default: 'ok',
+          validate: () => undefined,
+        },
+        b: {
+          schema: z.string(),
+          default: 'ok',
+          validate: () => true,
+        },
+      });
+
+      expect(config).toEqual({ a: 'ok', b: 'ok' });
+    });
+
+    test('returning false produces a generic issue', () => {
+      expect(() => defineConfig({
+        a: {
+          schema: z.string(),
+          default: 'x',
+          validate: () => false,
+        },
+      })).toThrow('a: Validation failed at a');
+    });
+
+    test('validate is skipped when schema validation already failed', () => {
+      const validateSpy = vi.fn();
+
+      expect(() => defineConfig({
+        a: {
+          schema: z.string(),
+        },
+        b: {
+          schema: z.string(),
+          default: 'b',
+          validate: validateSpy,
+        },
+      })).toThrow();
+
+      expect(validateSpy).not.toHaveBeenCalled();
+    });
+
+    test('runs on nested leaves and receives the full config', () => {
+      type Cfg = { adapters: { id: string }[]; nested: { defaultId: string } };
+      let seenConfig: unknown;
+
+      expect(() => defineConfig({
+        adapters: {
+          schema: v.array(v.object({ id: v.string() })),
+          default: [{ id: 'a' }],
+        },
+        nested: {
+          defaultId: {
+            schema: v.string(),
+            default: 'nope',
+            validate: validator<Cfg>(({ value, config }) => {
+              seenConfig = config;
+              if (!config.adapters.some(a => a.id === value)) {
+                return 'unknown id';
+              }
+            }),
+          },
+        },
+      })).toThrow('nested.defaultId: unknown id');
+
+      expect(seenConfig).toEqual({
+        adapters: [{ id: 'a' }],
+        nested: { defaultId: 'nope' },
+      });
+    });
+
+    test('multiple validate issues are merged in a single error', () => {
+      expect(() => defineConfig({
+        a: {
+          schema: z.string(),
+          default: 'x',
+          validate: () => 'first',
+        },
+        b: {
+          schema: z.string(),
+          default: 'y',
+          validate: () => [{ message: 'second' }, { message: 'third' }],
+        },
+      })).toThrow('a: first\nb: second\nb: third');
+    });
+
+    test('validator helper provides typed config', () => {
+      type Config = { adapters: { id: string }[]; defaultAdapterId: string };
+
+      const { config } = defineConfig({
+        adapters: {
+          schema: v.array(v.object({ id: v.string() })),
+          default: [{ id: 'a' }],
+        },
+        defaultAdapterId: {
+          schema: v.string(),
+          default: 'a',
+          validate: validator<Config>(({ value, config }) => {
+            if (!config.adapters.some(a => a.id === value)) {
+              return 'unknown adapter id';
+            }
+          }),
+        },
+      });
+
+      expect(config).toEqual({ adapters: [{ id: 'a' }], defaultAdapterId: 'a' });
     });
   });
 });
