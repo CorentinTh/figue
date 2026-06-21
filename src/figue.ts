@@ -1,4 +1,4 @@
-import type { ConfigDefinition, ConfigDefinitionElement, ConfigIssue, EnvRecord, InferSchemaType } from './figue.types';
+import type { ConfigDefinition, ConfigDefinitionElement, ConfigIssue, EnvRecord, InferSchemaType, ValidateFn, ValidateResult } from './figue.types';
 import type { Falsy } from './types';
 import { createConfigValidationError } from './figue.errors';
 import { castArray, mapValues, mergeDeep } from './utils';
@@ -94,6 +94,75 @@ function isConfigDefinitionElement(config: unknown): config is ConfigDefinitionE
     && config.schema !== null
     && '~standard' in config.schema
   );
+}
+
+export function validator<Config = any, Value = any>(fn: ValidateFn<Value, Config>): ValidateFn<Value, Config> {
+  return fn;
+}
+
+function normalizeValidateResult({ result, currentPath, definition }: { result: ValidateResult; currentPath: string[]; definition: ConfigDefinitionElement }): ConfigIssue[] {
+  if (result === undefined || result === null || result === true) {
+    return [];
+  }
+
+  if (result === false) {
+    return [{ path: currentPath, message: `Validation failed at ${currentPath.join('.')}`, definition }];
+  }
+
+  if (typeof result === 'string') {
+    return [{ path: currentPath, message: result, definition }];
+  }
+
+  const issues = Array.isArray(result) ? result : [result];
+
+  return issues.map(issue => ({
+    path: issue.path ?? currentPath,
+    message: issue.message,
+    definition,
+  }));
+}
+
+function runValidateHooks({
+  configDefinition,
+  config,
+  fullConfig,
+  path = [],
+}: {
+  configDefinition: ConfigDefinition;
+  config: Record<string, unknown>;
+  fullConfig: Record<string, unknown>;
+  path?: string[];
+}): ConfigIssue[] {
+  const issues: ConfigIssue[] = [];
+
+  for (const key in configDefinition) {
+    const currentPath = [...path, key];
+    const definition = configDefinition[key] as ConfigDefinitionElement;
+    const value = config[key];
+
+    if (isConfigDefinitionElement(definition)) {
+      if (typeof definition.validate !== 'function') {
+        continue;
+      }
+
+      try {
+        const result = definition.validate({ value, config: fullConfig });
+        issues.push(...normalizeValidateResult({ result, currentPath, definition }));
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        issues.push({ path: currentPath, message, definition });
+      }
+    } else if (typeof value === 'object' && value !== null) {
+      issues.push(...runValidateHooks({
+        configDefinition: definition as ConfigDefinition,
+        config: value as Record<string, unknown>,
+        fullConfig,
+        path: currentPath,
+      }));
+    }
+  }
+
+  return issues;
 }
 
 function buildEnvConfig({ configDefinition, env }: { configDefinition: ConfigDefinition; env: EnvRecord }): Record<string, unknown> {
@@ -202,6 +271,16 @@ export function defineConfig<T extends ConfigDefinition, Config extends Record<s
 
   if (issues.length > 0) {
     throw createConfigValidationError({ issues });
+  }
+
+  const validateIssues = runValidateHooks({
+    configDefinition,
+    config,
+    fullConfig: config,
+  });
+
+  if (validateIssues.length > 0) {
+    throw createConfigValidationError({ issues: validateIssues });
   }
 
   return { config: config as Config, env, envConfig };
