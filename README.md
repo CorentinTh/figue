@@ -1,3 +1,5 @@
+
+
 <p align="center">
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="./.github/fig.png">
@@ -180,7 +182,7 @@ const { config } = defineConfig(
     /* ... */
   },
   {
-    envSource: [import.meta.env, myEnvs],
+    envSources: [import.meta.env, myEnvs],
   },
 );
 ```
